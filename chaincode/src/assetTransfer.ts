@@ -142,6 +142,159 @@ export class AssetTransfer extends Contract {
         ctx.stub.setEvent('TransferToProcessingAccepted', updatedAssetBytes);
     }
 
+    @Transaction()
+    @Param('assetID', 'string', 'The ID of the asset to transfer')
+    @Param('wholesalerUser', 'string', 'The wholesaler user who should accept this transfer')
+    async TransferToWholesale(ctx: Context, assetID: string, wholesalerUser: string): Promise<void> {
+        const caller = ClientIdentifier(ctx);
+
+        // Verify caller is from Processor organization
+        if (caller.organization !== ORGANIZATIONS.PROCESSOR) {
+            throw new Error(`Only ${ORGANIZATIONS.PROCESSOR} can initiate transfer to wholesale`);
+        }
+
+        // Read the existing asset
+        const existingAssetBytes = await this.#readAsset(ctx, assetID);
+        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+
+        // Verify the caller is the current owner of the asset
+        const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
+        if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
+            throw new Error(`Only the current owner can initiate transfer. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
+        }
+
+        if (existingAsset.Status !== AssetStatus.PROCESSED) {
+            throw new Error(`Asset ${assetID} must be in PROCESSED status to transfer to wholesale. Current status: ${existingAsset.Status}`);
+        }
+
+        // Update the asset status to TRANSFERRING (owner remains Processor until accepted)
+        const updatedAsset = Asset.newInstance({
+            ...existingAsset,
+            Status: AssetStatus.TRANSFERRING
+        });
+
+        // Store the intended wholesaler user in a separate key for the acceptance process
+        const transferInfoKey = `TRANSFER_${assetID}`;
+        const transferInfo = {
+            intendedWholesaler: wholesalerUser,
+            initiatedBy: caller.user,
+            timestamp: ctx.stub.getTxTimestamp().seconds.toString()
+        };
+
+        // Save the updated asset and transfer info to the ledger
+        const updatedAssetBytes = marshal(updatedAsset);
+        await ctx.stub.putState(assetID, updatedAssetBytes);
+        await ctx.stub.putState(transferInfoKey, marshal(transferInfo));
+
+        // Update endorsing organizations to include Wholesaler for the acceptance
+        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.PROCESSOR, ORGANIZATIONS.WHOLESALER);
+
+        // Emit transfer initiation event
+        ctx.stub.setEvent('TransferToWholesaleInitiated', updatedAssetBytes);
+    }
+
+    @Transaction()
+    @Param('assetID', 'string', 'The ID of the asset to accept')
+    async AcceptToWholesale(ctx: Context, assetID: string): Promise<void> {
+        const caller = ClientIdentifier(ctx);
+
+        // Verify caller is from Wholesaler organization
+        if (caller.organization !== ORGANIZATIONS.WHOLESALER) {
+            throw new Error(`Only ${ORGANIZATIONS.WHOLESALER} can accept transfers`);
+        }
+
+        // Read the existing asset
+        const existingAssetBytes = await this.#readAsset(ctx, assetID);
+        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+
+        // Verify the asset is in TRANSFERRING status
+        if (existingAsset.Status !== AssetStatus.TRANSFERRING) {
+            throw new Error(`Asset ${assetID} is not in TRANSFERRING status. Current status: ${existingAsset.Status}`);
+        }
+
+        // Check if there's a pending transfer for this asset
+        const transferInfoKey = `TRANSFER_${assetID}`;
+        const transferInfoBytes = await ctx.stub.getState(transferInfoKey);
+        if (transferInfoBytes.length === 0) {
+            throw new Error(`No pending transfer found for asset ${assetID}`);
+        }
+
+        const transferInfo = unmarshal(transferInfoBytes) as any;
+        
+        // Verify the caller is the intended wholesaler
+        if (transferInfo.intendedWholesaler !== caller.user) {
+            throw new Error(`Only ${transferInfo.intendedWholesaler} can accept this transfer. You are ${caller.user}`);
+        }
+
+        // Create the new owner identity for Wholesaler organization
+        const newOwnerIdentifier: OwnerIdentifier = {
+            organization: ORGANIZATIONS.WHOLESALER,
+            user: caller.user
+        };
+
+        // Update the asset with new owner and status
+        const updatedAsset = Asset.newInstance({
+            ...existingAsset,
+            Owner: toJSON(newOwnerIdentifier),
+            Status: AssetStatus.IN_WHOLESALE
+        });
+
+        // Save the updated asset to the ledger
+        const updatedAssetBytes = marshal(updatedAsset);
+        await ctx.stub.putState(assetID, updatedAssetBytes);
+
+        // Clean up the transfer info
+        await ctx.stub.deleteState(transferInfoKey);
+
+        // Update endorsing organizations to include Wholesaler
+        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.WHOLESALER);
+
+        // Emit transfer acceptance event
+        ctx.stub.setEvent('TransferToWholesaleAccepted', updatedAssetBytes);
+    }
+
+    @Transaction()
+    @Param('assetID', 'string', 'The ID of the asset to sell')
+    async SellFishBatch(ctx: Context, assetID: string): Promise<void> {
+        const caller = ClientIdentifier(ctx);
+
+        // Verify caller is from Wholesaler organization
+        if (caller.organization !== ORGANIZATIONS.WHOLESALER) {
+            throw new Error(`Only ${ORGANIZATIONS.WHOLESALER} can sell fish batches`);
+        }
+
+        // Read the existing asset
+        const existingAssetBytes = await this.#readAsset(ctx, assetID);
+        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+
+        // Verify the caller is the current owner of the asset
+        const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
+        if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
+            throw new Error(`Only the current owner can sell the asset. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
+        }
+
+        // Verify the asset is in IN_WHOLESALE status
+        if (existingAsset.Status !== AssetStatus.IN_WHOLESALE) {
+            throw new Error(`Asset ${assetID} must be in IN_WHOLESALE status to be sold. Current status: ${existingAsset.Status}`);
+        }
+
+        // Update the asset status to SOLD
+        const updatedAsset = Asset.newInstance({
+            ...existingAsset,
+            Status: AssetStatus.SOLD
+        });
+
+        // Save the updated asset to the ledger
+        const updatedAssetBytes = marshal(updatedAsset);
+        await ctx.stub.putState(assetID, updatedAssetBytes);
+
+        // Keep endorsing organization as Wholesaler
+        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.WHOLESALER);
+
+        // Emit sale completion event
+        ctx.stub.setEvent('FishBatchSold', updatedAssetBytes);
+    }
+
     @Transaction(false)
     @Returns('boolean')
     async AssetExists(ctx: Context, assetID: string): Promise<boolean> {
@@ -209,5 +362,54 @@ export class AssetTransfer extends Contract {
         await setEndorsingOrgs(ctx, updatedAsset.ID, ctx.clientIdentity.getMSPID());
 
         ctx.stub.setEvent('UpdateAsset', updatedAssetBytes);
+    }
+
+    @Transaction()
+    @Param('assetID', 'string', 'The ID of the asset to process')
+    @Param('newQuantity', 'number', 'The new quantity after processing')
+    async ProcessFishBatch(ctx: Context, assetID: string, newQuantity: number): Promise<void> {
+        const caller = ClientIdentifier(ctx);
+
+        // Verify caller is from Processor organization
+        if (caller.organization !== ORGANIZATIONS.PROCESSOR) {
+            throw new Error(`Only ${ORGANIZATIONS.PROCESSOR} can process fish batches`);
+        }
+
+        // Read the existing asset
+        const existingAssetBytes = await this.#readAsset(ctx, assetID);
+        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+
+        // Verify the caller is the current owner of the asset
+        const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
+        if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
+            throw new Error(`Only the current owner can process the asset. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
+        }
+
+        // Verify the asset is in PROCESSING status
+        if (existingAsset.Status !== AssetStatus.PROCESSING) {
+            throw new Error(`Asset ${assetID} must be in PROCESSING status to be processed. Current status: ${existingAsset.Status}`);
+        }
+
+        // Validate new quantity
+        if (newQuantity <= 0) {
+            throw new Error(`New quantity must be greater than 0. Provided: ${newQuantity}`);
+        }
+
+        // Update the asset with new quantity and status
+        const updatedAsset = Asset.newInstance({
+            ...existingAsset,
+            Quantity: newQuantity,
+            Status: AssetStatus.PROCESSED
+        });
+
+        // Save the updated asset to the ledger
+        const updatedAssetBytes = marshal(updatedAsset);
+        await ctx.stub.putState(assetID, updatedAssetBytes);
+
+        // Keep endorsing organization as Processor
+        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.PROCESSOR);
+
+        // Emit processing completion event
+        ctx.stub.setEvent('FishBatchProcessed', updatedAssetBytes);
     }
 }
