@@ -8,7 +8,13 @@ export class AssetTransfer extends Contract {
     @Transaction()
     @Param('assetObj', 'Asset', 'The asset to be created or updated')
     async CreateAsset(ctx: Context, state: Asset): Promise<void> {
-        state.Owner = toJSON(ClientIdentifier(ctx));
+        const ownership = ClientIdentifier(ctx);
+
+        if (ownership.organization !== ORGANIZATIONS.VESSEL_OWNER) {
+            throw new Error(`Only ${ORGANIZATIONS.VESSEL_OWNER} can create catched fish bulks`);
+        }
+
+        state.Owner = toJSON(ownership);
         const asset = Asset.newInstance(state);
 
         const exists = await this.AssetExists(ctx, asset.ID);
