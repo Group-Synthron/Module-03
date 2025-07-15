@@ -5,8 +5,11 @@ export class Asset {
     @Property('ID', 'string')
     ID = '';
 
-    @Property('Name', 'string')
-    Name = '';
+    @Property('Location', 'string')
+    Location = '';
+
+    @Property('Specie', 'string')
+    Specie = '';
 
     @Property('Quantity', 'number')
     Quantity = 0;
@@ -17,7 +20,8 @@ export class Asset {
     static newInstance(state: Partial<Asset> = {}): Asset {
         return {
             ID: assertHasValue(state.ID, 'Missing ID'),
-            Name: state.Name ?? '',
+            Location: state.Location ?? '',
+            Specie: state.Specie ?? '',
             Quantity: state.Quantity ?? 0,
             Owner: assertHasValue(state.Owner, 'Missing Owner'),
         }
