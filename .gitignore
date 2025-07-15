@@ -1,0 +1,9 @@
+# Ignore the bin directory
+/bin/
+
+# Ignore the testnet/volumes directory
+testnet/volumes/
+
+node_modules
+
+chaincode/dist
