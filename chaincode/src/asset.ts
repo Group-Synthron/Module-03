@@ -1,5 +1,14 @@
 import { Object as DataType, Property } from 'fabric-contract-api';
 
+export enum AssetStatus {
+    CAUGHT = 'CAUGHT',
+    TRANSFERRING = 'TRANSFERRING',
+    PROCESSING = 'PROCESSING',
+    PROCESSED = 'PROCESSED',
+    IN_WHOLESALE = 'IN_WHOLESALE',
+    SOLD = 'SOLD'
+}
+
 @DataType()
 export class Asset {
     @Property('ID', 'string')
@@ -17,6 +26,9 @@ export class Asset {
     @Property('Owner', 'string')
     Owner = '';
 
+    @Property('Status', 'string')
+    Status = AssetStatus.CAUGHT;
+
     static newInstance(state: Partial<Asset> = {}): Asset {
         return {
             ID: assertHasValue(state.ID, 'Missing ID'),
@@ -24,6 +36,7 @@ export class Asset {
             Specie: state.Specie ?? '',
             Quantity: state.Quantity ?? 0,
             Owner: assertHasValue(state.Owner, 'Missing Owner'),
+            Status: state.Status ?? AssetStatus.CAUGHT,
         }
     }
 }
