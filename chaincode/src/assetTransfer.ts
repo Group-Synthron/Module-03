@@ -1,5 +1,5 @@
 import { Context, Contract, Info, Param, Returns, Transaction} from 'fabric-contract-api';
-import { Asset, AssetStatus } from './asset';
+import { Asset, AssetStatus, SeizedAsset } from './asset';
 import { ClientIdentifier, marshal, OwnerIdentifier, setEndorsingOrgs, toJSON, unmarshal } from './util';
 import { ORGANIZATIONS } from './organizations';
 
@@ -387,5 +387,121 @@ export class AssetTransfer extends Contract {
         }
 
         return marshal(assets).toString();
+    }
+
+    async SeizeAsset(ctx: Context, assetID: string, reason: string): Promise<void> {
+        const caller = ClientIdentifier(ctx);
+
+        // Verify caller is from the government
+        if (caller.organization !== ORGANIZATIONS.GOVERNMENT) {
+            throw new Error(`Only ${ORGANIZATIONS.GOVERNMENT} can sell fish batches`);
+        }
+
+        // Read the existing asset
+        const existingAssetBytes = await this.#readAsset(ctx, assetID);
+        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+
+        const updatedAsset = Asset.newInstance({
+            ...existingAsset,
+            Status: AssetStatus.SEIZED,
+        });
+
+        const seizedAsset = SeizedAsset.newInstance({
+            AssetID: assetID,
+            Timestamp: ctx.stub.getTxTimestamp().toString(),
+            Reason: reason,
+            PreviousStatus: existingAsset.Status,
+            Officer: caller.user,
+        })
+
+        // Save the updated asset and seized asset to the ledger
+        const updatedAssetBytes = marshal(updatedAsset);
+        await ctx.stub.putState(assetID, updatedAssetBytes);
+
+        const seizedAssetBytes = marshal(seizedAsset);
+        await ctx.stub.putState(`SEIZED_${assetID}`, seizedAssetBytes);
+        
+        ctx.stub.setEvent('AssetSeized', updatedAssetBytes);
+    }
+
+    @Transaction()
+    @Param('assetID', 'string', 'The ID of the seized asset to release')
+    async ReleaseSeizedAsset(ctx: Context, assetID: string): Promise<void> {
+        const caller = ClientIdentifier(ctx);
+
+        // Verify caller is from the government
+        if (caller.organization !== ORGANIZATIONS.GOVERNMENT) {
+            throw new Error(`Only ${ORGANIZATIONS.GOVERNMENT} can release seized assets`);
+        }
+
+        // Read the existing asset
+        const existingAssetBytes = await this.#readAsset(ctx, assetID);
+        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+
+        // Verify the asset is currently seized
+        if (existingAsset.Status !== AssetStatus.SEIZED) {
+            throw new Error(`Asset ${assetID} is not currently seized. Current status: ${existingAsset.Status}`);
+        }
+
+        // Read the seized asset record
+        const seizedAssetKey = `SEIZED_${assetID}`;
+        const seizedAssetBytes = await ctx.stub.getState(seizedAssetKey);
+        if (seizedAssetBytes.length === 0) {
+            throw new Error(`No seized asset record found for asset ${assetID}`);
+        }
+
+        const seizedAsset = SeizedAsset.newInstance(unmarshal(seizedAssetBytes) as SeizedAsset);
+
+        // Restore the asset's previous status
+        const updatedAsset = Asset.newInstance({
+            ...existingAsset,
+            Status: seizedAsset.PreviousStatus as AssetStatus,
+        });
+
+        // Save the updated asset to the ledger
+        const updatedAssetBytes = marshal(updatedAsset);
+        await ctx.stub.putState(assetID, updatedAssetBytes);
+
+        // Remove the seized asset record
+        await ctx.stub.deleteState(seizedAssetKey);
+
+        // Emit asset release event
+        ctx.stub.setEvent('SeizedAssetReleased', updatedAssetBytes);
+    }
+
+    @Transaction()
+    @Param('assetID', 'string', 'The ID of the seized asset to dispose')
+    async DisposeAsset(ctx: Context, assetID: string): Promise<void> {
+        const caller = ClientIdentifier(ctx);
+
+        // Verify caller is from the government
+        if (caller.organization !== ORGANIZATIONS.GOVERNMENT) {
+            throw new Error(`Only ${ORGANIZATIONS.GOVERNMENT} can dispose seized assets`);
+        }
+
+        // Read the existing asset
+        const existingAssetBytes = await this.#readAsset(ctx, assetID);
+        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+
+        // Verify the asset is currently seized
+        if (existingAsset.Status !== AssetStatus.SEIZED) {
+            throw new Error(`Asset ${assetID} is not currently seized. Current status: ${existingAsset.Status}. Only seized assets can be disposed.`);
+        }
+
+        // Update the asset status to DISPOSED
+        const updatedAsset = Asset.newInstance({
+            ...existingAsset,
+            Status: AssetStatus.DISPOSED,
+        });
+
+        // Save the updated asset to the ledger
+        const updatedAssetBytes = marshal(updatedAsset);
+        await ctx.stub.putState(assetID, updatedAssetBytes);
+
+        // Keep the seized asset record for audit purposes (don't delete it)
+        // This maintains a trail of why the asset was seized before disposal
+
+        // Emit asset disposal event
+        ctx.stub.setEvent('AssetDisposed', updatedAssetBytes);
     }
 }

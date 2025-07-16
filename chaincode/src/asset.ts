@@ -6,7 +6,9 @@ export enum AssetStatus {
     PROCESSING = 'PROCESSING',
     PROCESSED = 'PROCESSED',
     IN_WHOLESALE = 'IN_WHOLESALE',
-    SOLD = 'SOLD'
+    SOLD = 'SOLD',
+    SEIZED = 'SEIZED',
+    DISPOSED = 'DISPOSED',
 }
 
 @DataType()
@@ -37,6 +39,34 @@ export class Asset {
             Quantity: state.Quantity ?? 0,
             Owner: assertHasValue(state.Owner, 'Missing Owner'),
             Status: state.Status ?? AssetStatus.CAUGHT,
+        }
+    }
+}
+
+@DataType()
+export class SeizedAsset {
+    @Property('AssetID', 'string')
+    AssetID = '';
+
+    @Property('Timestamp', 'string')
+    Timestamp = '';
+
+    @Property('Reason', 'string')
+    Reason = '';
+
+    @Property('PreviousStatus', 'string')
+    PreviousStatus = '';
+
+    @Property('Officer', 'string')
+    Officer = '';
+
+    static newInstance(state: SeizedAsset): SeizedAsset {
+        return {
+            AssetID: state.AssetID,
+            Timestamp: state.Timestamp,
+            Reason: state.Reason,
+            PreviousStatus: state.PreviousStatus,
+            Officer: state.Officer,
         }
     }
 }
