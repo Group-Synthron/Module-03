@@ -143,6 +143,55 @@ export class AssetTransfer extends Contract {
     }
 
     @Transaction()
+    @Param('assetID', 'string', 'The ID of the asset to process')
+    @Param('newQuantity', 'number', 'The new quantity after processing')
+    async ProcessFishBatch(ctx: Context, assetID: string, newQuantity: number): Promise<void> {
+        const caller = ClientIdentifier(ctx);
+
+        // Verify caller is from Processor organization
+        if (caller.organization !== ORGANIZATIONS.PROCESSOR) {
+            throw new Error(`Only ${ORGANIZATIONS.PROCESSOR} can process fish batches`);
+        }
+
+        // Read the existing asset
+        const existingAssetBytes = await this.#readAsset(ctx, assetID);
+        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+
+        // Verify the caller is the current owner of the asset
+        const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
+        if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
+            throw new Error(`Only the current owner can process the asset. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
+        }
+
+        // Verify the asset is in PROCESSING status
+        if (existingAsset.Status !== AssetStatus.PROCESSING) {
+            throw new Error(`Asset ${assetID} must be in PROCESSING status to be processed. Current status: ${existingAsset.Status}`);
+        }
+
+        // Validate new quantity
+        if (newQuantity <= 0) {
+            throw new Error(`New quantity must be greater than 0. Provided: ${newQuantity}`);
+        }
+
+        // Update the asset with new quantity and status
+        const updatedAsset = Asset.newInstance({
+            ...existingAsset,
+            Quantity: newQuantity,
+            Status: AssetStatus.PROCESSED
+        });
+
+        // Save the updated asset to the ledger
+        const updatedAssetBytes = marshal(updatedAsset);
+        await ctx.stub.putState(assetID, updatedAssetBytes);
+
+        // Keep endorsing organization as Processor
+        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.PROCESSOR);
+
+        // Emit processing completion event
+        ctx.stub.setEvent('FishBatchProcessed', updatedAssetBytes);
+    }
+
+    @Transaction()
     @Param('assetID', 'string', 'The ID of the asset to transfer')
     @Param('wholesalerUser', 'string', 'The wholesaler user who should accept this transfer')
     async TransferToWholesale(ctx: Context, assetID: string, wholesalerUser: string): Promise<void> {
@@ -338,78 +387,5 @@ export class AssetTransfer extends Contract {
         }
 
         return marshal(assets).toString();
-    }
-
-    @Transaction()
-    @Param('assetObj', 'Asset', 'The asset to be updated')
-    async UpdateAsset(ctx: Context, assetUpdate: Asset): Promise<void> {
-        if (!assetUpdate.ID) {
-            throw new Error('Asset ID is required for update');
-        }
-
-        const existingAssetBytes = await this.#readAsset(ctx, assetUpdate.ID);
-        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
-
-        const updatedState = Object.assign({}, existingAsset, assetUpdate, {
-            Owner: existingAsset.Owner, // Must transfer to change owner
-        });
-        const updatedAsset = Asset.newInstance(updatedState);
-
-        // overwriting original asset with new asset
-        const updatedAssetBytes = marshal(updatedAsset);
-        await ctx.stub.putState(updatedAsset.ID, updatedAssetBytes);
-
-        await setEndorsingOrgs(ctx, updatedAsset.ID, ctx.clientIdentity.getMSPID());
-
-        ctx.stub.setEvent('UpdateAsset', updatedAssetBytes);
-    }
-
-    @Transaction()
-    @Param('assetID', 'string', 'The ID of the asset to process')
-    @Param('newQuantity', 'number', 'The new quantity after processing')
-    async ProcessFishBatch(ctx: Context, assetID: string, newQuantity: number): Promise<void> {
-        const caller = ClientIdentifier(ctx);
-
-        // Verify caller is from Processor organization
-        if (caller.organization !== ORGANIZATIONS.PROCESSOR) {
-            throw new Error(`Only ${ORGANIZATIONS.PROCESSOR} can process fish batches`);
-        }
-
-        // Read the existing asset
-        const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
-
-        // Verify the caller is the current owner of the asset
-        const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
-        if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
-            throw new Error(`Only the current owner can process the asset. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
-        }
-
-        // Verify the asset is in PROCESSING status
-        if (existingAsset.Status !== AssetStatus.PROCESSING) {
-            throw new Error(`Asset ${assetID} must be in PROCESSING status to be processed. Current status: ${existingAsset.Status}`);
-        }
-
-        // Validate new quantity
-        if (newQuantity <= 0) {
-            throw new Error(`New quantity must be greater than 0. Provided: ${newQuantity}`);
-        }
-
-        // Update the asset with new quantity and status
-        const updatedAsset = Asset.newInstance({
-            ...existingAsset,
-            Quantity: newQuantity,
-            Status: AssetStatus.PROCESSED
-        });
-
-        // Save the updated asset to the ledger
-        const updatedAssetBytes = marshal(updatedAsset);
-        await ctx.stub.putState(assetID, updatedAssetBytes);
-
-        // Keep endorsing organization as Processor
-        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.PROCESSOR);
-
-        // Emit processing completion event
-        ctx.stub.setEvent('FishBatchProcessed', updatedAssetBytes);
     }
 }
