@@ -410,6 +410,9 @@ export class AssetTransfer extends Contract {
         return marshal(seizedAssets).toString();
     }
 
+    @Transaction()
+    @Param('assetID', 'string', 'The ID of the asset to seize')
+    @Param('reason', 'string', 'The reason for seizing the asset')
     async SeizeAsset(ctx: Context, assetID: string, reason: string): Promise<void> {
         const caller = ClientIdentifier(ctx);
 
