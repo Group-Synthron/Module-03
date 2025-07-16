@@ -389,6 +389,27 @@ export class AssetTransfer extends Contract {
         return marshal(assets).toString();
     }
 
+    @Transaction(false)
+    @Returns('string')
+    async GetAllSeizedAssets(ctx: Context): Promise<string> {
+        // range query with empty string for startKey and endKey does an open-ended query of all records in the chaincode namespace.
+        const iterator = await ctx.stub.getStateByRange('', '');
+
+        const seizedAssets: SeizedAsset[] = [];
+        for (let result = await iterator.next(); !result.done; result = await iterator.next()) {
+            const seizedAssetBytes = result.value.value;
+            try {
+                const seizedAsset = SeizedAsset.newInstance(unmarshal(seizedAssetBytes) as SeizedAsset);
+                seizedAssets.push(seizedAsset);
+            } catch (err) {
+                // This will fail for non-seized asset objects, which is expected
+                console.log(err);
+            }
+        }
+
+        return marshal(seizedAssets).toString();
+    }
+
     async SeizeAsset(ctx: Context, assetID: string, reason: string): Promise<void> {
         const caller = ClientIdentifier(ctx);
 
