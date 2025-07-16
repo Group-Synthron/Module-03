@@ -4,7 +4,7 @@ import FabricGatewayConnection from '../../utils/conntection';
 
 const router = express.Router();
 
-router.get('/acceptToProcessing/:id', async (req: Request, res: Response) => {
+router.get('/accept/:id', async (req: Request, res: Response) => {
     const fabricConnection = req.fabricConnection as FabricGatewayConnection;
     const contract = fabricConnection.contract;
 
@@ -27,7 +27,7 @@ router.get('/acceptToProcessing/:id', async (req: Request, res: Response) => {
     }
 });
 
-router.post('/processFishBatch', async (req: Request, res: Response) => {
+router.post('/process', async (req: Request, res: Response) => {
     const fabricConnection = req.fabricConnection as FabricGatewayConnection;
     const contract = fabricConnection.contract;
 
@@ -56,7 +56,7 @@ router.post('/processFishBatch', async (req: Request, res: Response) => {
     }
 });
 
-router.post('/transferToWholesale', async (req: Request, res: Response) => {
+router.post('/transfer', async (req: Request, res: Response) => {
     const fabricConnection = req.fabricConnection as FabricGatewayConnection;
     const contract = fabricConnection.contract;
 
