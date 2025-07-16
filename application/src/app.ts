@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 
+import fabricConnection from './middleware/fabricConnection';
 import Routes from './routes/index';
 
 class App {
@@ -12,6 +13,7 @@ class App {
         this.app.use(cors());
         this.app.use(express.json());
         this.app.use(express.urlencoded({ extended: true }));
+        this.app.use(fabricConnection)
 
         this.routes.setRoutes(this.app);
     }
