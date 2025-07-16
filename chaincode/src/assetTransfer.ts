@@ -432,7 +432,7 @@ export class AssetTransfer extends Contract {
 
         const seizedAsset = SeizedAsset.newInstance({
             AssetID: assetID,
-            Timestamp: ctx.stub.getTxTimestamp().toString(),
+            Timestamp: ctx.stub.getTxTimestamp().seconds.toString(),
             Reason: reason,
             PreviousStatus: existingAsset.Status,
             Officer: caller.user,
