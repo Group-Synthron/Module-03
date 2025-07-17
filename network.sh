@@ -45,6 +45,45 @@ prerequisites() {
     echo ""
 }
 
+setCredentials() {
+    if [ -d "./credentials" ]; then
+        rm -rf ./credentials 2>/dev/null
+    fi
+
+    mkdir -p ./credentials/{vesselowner,processor,wholesaler,government,orderer}/{tls,msp,users}
+
+    FABRIC_PEERS_PATH="./fabric-samples/test-network/organizations/peerOrganizations"
+    FABRIC_ORDERER_PATH="./fabric-samples/test-network/organizations/ordererOrganizations"
+
+    infoln "Copying vesselowner credentials"
+    PEER_CREDENTIAL_SOURCE="${FABRIC_PEERS_PATH}/vesselowner.example.com/peers/peer0.vesselowner.example.com"
+    cp -r "${PEER_CREDENTIAL_SOURCE}/tls" ./credentials/vesselowner/tls
+    cp -r "${PEER_CREDENTIAL_SOURCE}/msp" ./credentials/vesselowner/msp
+    PEER_CREDENTIAL_SOURCE="$(cd "${PEER_CREDENTIAL_SOURCE}/../.." && pwd)"
+    cp -r "${PEER_CREDENTIAL_SOURCE}/users" ./credentials/vesselowner/
+
+    infoln "Copying processor credentials"
+    PEER_CREDENTIAL_SOURCE="${FABRIC_PEERS_PATH}/processor.example.com/peers/peer0.processor.example.com"
+    cp -r "${PEER_CREDENTIAL_SOURCE}/tls" ./credentials/processor/tls
+    cp -r "${PEER_CREDENTIAL_SOURCE}/msp" ./credentials/processor/msp
+    PEER_CREDENTIAL_SOURCE="$(cd "${PEER_CREDENTIAL_SOURCE}/../.." && pwd)"
+    cp -r "${PEER_CREDENTIAL_SOURCE}/users" ./credentials/processor/
+
+    infoln "Copying wholesaler credentials"
+    PEER_CREDENTIAL_SOURCE="${FABRIC_PEERS_PATH}/wholesaler.example.com/peers/peer0.wholesaler.example.com"
+    cp -r "${PEER_CREDENTIAL_SOURCE}/tls" ./credentials/wholesaler/tls
+    cp -r "${PEER_CREDENTIAL_SOURCE}/msp" ./credentials/wholesaler/msp
+    PEER_CREDENTIAL_SOURCE="$(cd "${PEER_CREDENTIAL_SOURCE}/../.." && pwd)"
+    cp -r "${PEER_CREDENTIAL_SOURCE}/users" ./credentials/wholesaler/
+
+    infoln "Copying government credentials"
+    PEER_CREDENTIAL_SOURCE="${FABRIC_PEERS_PATH}/government.example.com/peers/peer0.government.example.com"
+    cp -r "${PEER_CREDENTIAL_SOURCE}/tls" ./credentials/government/tls
+    cp -r "${PEER_CREDENTIAL_SOURCE}/msp" ./credentials/government/msp
+    PEER_CREDENTIAL_SOURCE="$(cd "${PEER_CREDENTIAL_SOURCE}/../.." && pwd)"
+    cp -r "${PEER_CREDENTIAL_SOURCE}/users" ./credentials/government/
+}
+
 environmentUp() {
     infoln "Starting the fabric network simulation environment"    
 
@@ -55,6 +94,9 @@ environmentUp() {
     ./network.sh deployCC -ccn basic -ccp $CHAINCODE -ccl $CCLANG
 
     chmod +x+r -R ./organizations
+
+    infoln "Setting up credentials"
+    setCredentials
 
     popd > /dev/null
 }
@@ -67,6 +109,9 @@ environmentDown() {
     ./network.sh down
 
     popd > /dev/null
+
+    infoln "Cleaning up credentials"
+    rm -rf ./credentials 2>/dev/null
 }
 
 # Check if at least one parameter is provided

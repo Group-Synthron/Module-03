@@ -7,3 +7,5 @@ testnet/volumes/
 node_modules
 
 chaincode/dist
+
+credentials
