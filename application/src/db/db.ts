@@ -2,6 +2,7 @@ import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 
 import initializationSql from './initializationSql';
+import { existsSync } from 'fs';
 
 export default class DatabaseManager {
     private static instance: DatabaseManager | null = null;
@@ -21,12 +22,16 @@ export default class DatabaseManager {
     }
 
     private static async initializeDatabase(instance: DatabaseManager): Promise<void> {
+        const dbFileExists = existsSync('./db.bin');
+
         instance.db = await open({
             filename: './db.bin',
             driver: sqlite3.Database
         });
 
-        await instance.db.exec(initializationSql);
+        if (!dbFileExists) {
+            await instance.db.exec(initializationSql);
+        }
 
         console.log('Database initialized successfully');
     }
