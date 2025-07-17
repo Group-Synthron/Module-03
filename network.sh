@@ -56,28 +56,30 @@ setCredentials() {
     FABRIC_ORDERER_PATH="./fabric-samples/test-network/organizations/ordererOrganizations"
 
     infoln "Copying vesselowner credentials"
-    PEER_CREDENTIAL_SOURCE="${FABRIC_PEERS_PATH}/vesselowner.example.com/peers/peer0.vesselowner.example.com"
-    cp -r "${PEER_CREDENTIAL_SOURCE}/tls" ./credentials/vesselowner/
-    cp -r "${PEER_CREDENTIAL_SOURCE}/msp" ./credentials/vesselowner/
+    cp -r "${FABRIC_PEERS_PATH}/vesselowner.example.com/msp" ./credentials/vesselowner/
     cp -r "${FABRIC_PEERS_PATH}/vesselowner.example.com/users" ./credentials/vesselowner/
+    cp -r "${FABRIC_PEERS_PATH}/vesselowner.example.com/peers/peer0.vesselowner.example.com/tls/ca.crt" ./credentials/vesselowner/peer-tls-cert.pem
 
     infoln "Copying processor credentials"
-    PEER_CREDENTIAL_SOURCE="${FABRIC_PEERS_PATH}/processor.example.com/peers/peer0.processor.example.com"
-    cp -r "${PEER_CREDENTIAL_SOURCE}/tls" ./credentials/processor/
-    cp -r "${PEER_CREDENTIAL_SOURCE}/msp" ./credentials/processor/
+    cp -r "${FABRIC_PEERS_PATH}/processor.example.com/msp" ./credentials/processor/
     cp -r "${FABRIC_PEERS_PATH}/processor.example.com/users" ./credentials/processor/
+    cp -r "${FABRIC_PEERS_PATH}/processor.example.com/peers/peer0.processor.example.com/tls/ca.crt" ./credentials/processor/peer-tls-cert.pem
 
     infoln "Copying wholesaler credentials"
-    PEER_CREDENTIAL_SOURCE="${FABRIC_PEERS_PATH}/wholesaler.example.com/peers/peer0.wholesaler.example.com"
-    cp -r "${PEER_CREDENTIAL_SOURCE}/tls" ./credentials/wholesaler/
-    cp -r "${PEER_CREDENTIAL_SOURCE}/msp" ./credentials/wholesaler/
+    cp -r "${FABRIC_PEERS_PATH}/wholesaler.example.com/msp" ./credentials/wholesaler/
     cp -r "${FABRIC_PEERS_PATH}/wholesaler.example.com/users" ./credentials/wholesaler/
+    cp -r "${FABRIC_PEERS_PATH}/wholesaler.example.com/peers/peer0.wholesaler.example.com/tls/ca.crt" ./credentials/wholesaler/peer-tls-cert.pem
 
     infoln "Copying government credentials"
-    PEER_CREDENTIAL_SOURCE="${FABRIC_PEERS_PATH}/government.example.com/peers/peer0.government.example.com"
-    cp -r "${PEER_CREDENTIAL_SOURCE}/tls" ./credentials/government/
-    cp -r "${PEER_CREDENTIAL_SOURCE}/msp" ./credentials/government/
+    cp -r "${FABRIC_PEERS_PATH}/government.example.com/msp" ./credentials/government/
     cp -r "${FABRIC_PEERS_PATH}/government.example.com/users" ./credentials/government/
+    cp -r "${FABRIC_PEERS_PATH}/government.example.com/peers/peer0.government.example.com/tls/ca.crt" ./credentials/government/peer-tls-cert.pem
+
+    PREVIOUS_USER=${SUDO_USER:-$(whoami)}
+    if [ $(id -u $PREVIOUS_USER) -ne 0 ]; then
+        infoln "Changing file ownership of credentials to $PREVIOUS_USER"
+        chown -R $PREVIOUS_USER:$(id -gn $PREVIOUS_USER) ./credentials
+    fi
 }
 
 environmentUp() {
@@ -88,7 +90,7 @@ environmentUp() {
     ./network.sh up createChannel -c mychannel -ca
     ./network.sh deployCC -ccn basic -ccp $(cd ../../chaincode && pwd) -ccl typescript
 
-    chmod +x+r -R ./organizations
+    # chmod +x+r -R ./organizations
 
     popd > /dev/null
 
