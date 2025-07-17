@@ -90,8 +90,7 @@ environmentUp() {
     pushd ./fabric-samples/test-network > /dev/null
 
     ./network.sh up createChannel -c mychannel -ca
-    ./network.sh deployCC -ccn basic -ccp ../../chaincode -ccl typescript
-    ./network.sh deployCC -ccn basic -ccp $CHAINCODE -ccl $CCLANG
+    ./network.sh deployCC -ccn basic -ccp $(cd ../../chaincode && pwd) -ccl typescript
 
     chmod +x+r -R ./organizations
 
