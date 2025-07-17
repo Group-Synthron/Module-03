@@ -31,7 +31,7 @@ export default class Organization {
         organization.mspId = mspId;
         organization.peerEndpoint = peerEndpoint;
         organization.peerHostAlias = peerHostAlias;
-        organization.tlsPath = path.join(credentialDir, tlsPath);
+        organization.tlsPath = path.resolve(path.join(credentialDir, tlsPath));
 
         return organization;
     }

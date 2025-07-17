@@ -49,7 +49,7 @@ const initializationSql = `
         ('governmentadmin', 'government', 'admin', 'government/users/Admin@government.example.com/msp'),
         ('user1', 'government', 'user', 'government/users/User1@government.example.com/msp');
 
-    DROP TABLE IF EXISTS enrolment;
+    DROP TABLE IF EXISTS enrollment;
 
     CREATE TABLE enrollment (
         organization TEXT PRIMARY KEY,
