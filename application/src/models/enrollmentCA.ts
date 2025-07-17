@@ -2,7 +2,7 @@ import DatabaseManager from "../db/db";
 import Organization from "./organization";
 
 export default class EnrollmentCA {
-    private organization: Organization = {} as Organization;
+    private organization_name: string = '';
     private ca_name: string = '';
     private ca_client_home: string = '';
     private ca_url: string = '';
@@ -11,9 +11,8 @@ export default class EnrollmentCA {
 
     private constructor() {}
 
-    public static async create(organization: Organization): Promise<EnrollmentCA> {
+    public static async create(organization_name: string): Promise<EnrollmentCA> {
         const dbManager = await DatabaseManager.getInstance();
-        const organization_name = organization.getName();
 
         const ca_name = await dbManager.getCaNameByOrganization(organization_name);
         const ca_client_home = await dbManager.getCaClientHomeByOrganization(organization_name);
@@ -27,7 +26,7 @@ export default class EnrollmentCA {
 
         const enrollmentCA = new EnrollmentCA();
 
-        enrollmentCA.organization = organization;
+        enrollmentCA.organization_name = organization_name;
         enrollmentCA.ca_name = ca_name;
         enrollmentCA.ca_client_home = ca_client_home;
         enrollmentCA.ca_url = ca_url;
@@ -37,8 +36,8 @@ export default class EnrollmentCA {
         return enrollmentCA;
     }
 
-    public getOrganization(): Organization {
-        return this.organization;
+    public getOrganizationName(): string {
+        return this.organization_name;
     }
 
     public getCaName(): string {
