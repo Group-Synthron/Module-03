@@ -33,10 +33,13 @@ prerequisites() {
 
     source ./fabric-samples/test-network/scripts/utils.sh
 
-    infoln "Applying modifications to the fabric testnetwork"
-    pushd ./fabric-samples > /dev/null
-    patch -p1 < ../fabric-samples.diff
-    infoln "Modifications applied successfully"
+    if [ ! -f "./fabric-samples/PATCH_APPLIED" ]; then
+        infoln "Applying modifications to the fabric testnetwork"
+        pushd ./fabric-samples > /dev/null
+        patch -p1 < ../fabric-samples.diff
+        infoln "Modifications applied successfully"
+        popd > /dev/null
+    fi
 
     infoln "All prerequisites are satisfied for the fabric network simulation environment"
     echo ""
