@@ -115,6 +115,9 @@ environmentDown() {
 
     infoln "Cleaning up credentials"
     rm -rf ./credentials 2>/dev/null
+
+    infoln "Clearing up database"
+    rm -rf ./application/db.bin 2>/dev/null
 }
 
 # Check if at least one parameter is provided
