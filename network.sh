@@ -23,7 +23,7 @@ prerequisites() {
         fi
     fi
 
-    if [ ! -d "fabric-samples/bin" ] || [ -z "$(ls -A "fabric-samples/bin" 2>/dev/null)"]; then
+    if [ ! -d "fabric-samples/bin" ] || [ -z "$(ls -A "fabric-samples/bin" 2>/dev/null)" ]; then
         . ./scripts/install-fabric.sh binary docker
         if [ $? -ne 0 ]; then
             echo "Failed to install Fabric binaries. Please try again."
