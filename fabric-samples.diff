@@ -1,0 +1,2175 @@
+diff --git a/test-network/.gitignore b/test-network/.gitignore
+index fdc2152..1708824 100644
+--- a/test-network/.gitignore
++++ b/test-network/.gitignore
+@@ -6,8 +6,9 @@
+ /channel-artifacts/*.pb
+ /org3-artifacts/crypto-config/*
+ organizations/fabric-ca/ordererOrg/*
+-organizations/fabric-ca/org1/*
+-organizations/fabric-ca/org2/*
++organizations/fabric-ca/vesselowner/*
++organizations/fabric-ca/processor/*
++organizations/fabric-ca/wholesaler/*
+ addOrg3/fabric-ca/org3/*
+ organizations/ordererOrganizations/*
+ organizations/peerOrganizations/*
+diff --git a/test-network/addOrg3/compose/compose-ca-org3.yaml b/test-network/addOrg3/compose/compose-ca-org3.yaml
+index 74dbf4d..1096d44 100644
+--- a/test-network/addOrg3/compose/compose-ca-org3.yaml
++++ b/test-network/addOrg3/compose/compose-ca-org3.yaml
+@@ -3,8 +3,6 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+-
+ networks:
+   test:
+     name: fabric_test
+diff --git a/test-network/addOrg3/compose/compose-couch-org3.yaml b/test-network/addOrg3/compose/compose-couch-org3.yaml
+index c7f36c1..345a20b 100644
+--- a/test-network/addOrg3/compose/compose-couch-org3.yaml
++++ b/test-network/addOrg3/compose/compose-couch-org3.yaml
+@@ -3,8 +3,6 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+-
+ networks:
+   test:
+     name: fabric_test
+diff --git a/test-network/addOrg3/compose/compose-org3.yaml b/test-network/addOrg3/compose/compose-org3.yaml
+index f6e1ca1..556690d 100644
+--- a/test-network/addOrg3/compose/compose-org3.yaml
++++ b/test-network/addOrg3/compose/compose-org3.yaml
+@@ -3,8 +3,6 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+-
+ volumes:
+   peer0.org3.example.com:
+ 
+diff --git a/test-network/addOrg3/compose/docker/docker-compose-ca-org3.yaml b/test-network/addOrg3/compose/docker/docker-compose-ca-org3.yaml
+index 16732f0..a5a452f 100644
+--- a/test-network/addOrg3/compose/docker/docker-compose-ca-org3.yaml
++++ b/test-network/addOrg3/compose/docker/docker-compose-ca-org3.yaml
+@@ -3,5 +3,4 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+ 
+diff --git a/test-network/addOrg3/compose/docker/docker-compose-couch-org3.yaml b/test-network/addOrg3/compose/docker/docker-compose-couch-org3.yaml
+index 16732f0..a5a452f 100644
+--- a/test-network/addOrg3/compose/docker/docker-compose-couch-org3.yaml
++++ b/test-network/addOrg3/compose/docker/docker-compose-couch-org3.yaml
+@@ -3,5 +3,4 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+ 
+diff --git a/test-network/addOrg3/compose/docker/docker-compose-org3.yaml b/test-network/addOrg3/compose/docker/docker-compose-org3.yaml
+index 12c9ea7..77ad978 100644
+--- a/test-network/addOrg3/compose/docker/docker-compose-org3.yaml
++++ b/test-network/addOrg3/compose/docker/docker-compose-org3.yaml
+@@ -3,8 +3,6 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+-
+ networks:
+   test:
+     name: fabric_test
+diff --git a/test-network/compose/compose-bft-test-net.yaml b/test-network/compose/compose-bft-test-net.yaml
+index 4ab8305..26c96b8 100644
+--- a/test-network/compose/compose-bft-test-net.yaml
++++ b/test-network/compose/compose-bft-test-net.yaml
+@@ -1,5 +1,3 @@
+-version: '3.7'
+-
+ volumes:
+   orderer.example.com:
+   orderer2.example.com:
+diff --git a/test-network/compose/compose-ca.yaml b/test-network/compose/compose-ca.yaml
+index f678755..1f0d0c2 100644
+--- a/test-network/compose/compose-ca.yaml
++++ b/test-network/compose/compose-ca.yaml
+@@ -3,21 +3,19 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+-
+ networks:
+   test:
+     name: fabric_test
+ 
+ services:
+ 
+-  ca_org1:
++  ca_vesselowner:
+     image: hyperledger/fabric-ca:latest
+     labels:
+       service: hyperledger-fabric
+     environment:
+       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+-      - FABRIC_CA_SERVER_CA_NAME=ca-org1
++      - FABRIC_CA_SERVER_CA_NAME=ca-vesselowner
+       - FABRIC_CA_SERVER_TLS_ENABLED=true
+       - FABRIC_CA_SERVER_PORT=7054
+       - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:17054
+@@ -26,18 +24,18 @@ services:
+       - "17054:17054"
+     command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+     volumes:
+-      - ../organizations/fabric-ca/org1:/etc/hyperledger/fabric-ca-server
+-    container_name: ca_org1
++      - ../organizations/fabric-ca/vesselowner:/etc/hyperledger/fabric-ca-server
++    container_name: ca_vesselowner
+     networks:
+       - test
+ 
+-  ca_org2:
++  ca_processor:
+     image: hyperledger/fabric-ca:latest
+     labels:
+       service: hyperledger-fabric
+     environment:
+       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+-      - FABRIC_CA_SERVER_CA_NAME=ca-org2
++      - FABRIC_CA_SERVER_CA_NAME=ca-processor
+       - FABRIC_CA_SERVER_TLS_ENABLED=true
+       - FABRIC_CA_SERVER_PORT=8054
+       - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:18054
+@@ -46,8 +44,48 @@ services:
+       - "18054:18054"
+     command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+     volumes:
+-      - ../organizations/fabric-ca/org2:/etc/hyperledger/fabric-ca-server
+-    container_name: ca_org2
++      - ../organizations/fabric-ca/processor:/etc/hyperledger/fabric-ca-server
++    container_name: ca_processor
++    networks:
++      - test
++
++  ca_wholesaler:
++    image: hyperledger/fabric-ca:latest
++    labels:
++      service: hyperledger-fabric
++    environment:
++      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
++      - FABRIC_CA_SERVER_CA_NAME=ca-wholesaler
++      - FABRIC_CA_SERVER_TLS_ENABLED=true
++      - FABRIC_CA_SERVER_PORT=11054
++      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:21054
++    ports:
++      - "11054:11054"
++      - "21054:21054"
++    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
++    volumes:
++      - ../organizations/fabric-ca/wholesaler:/etc/hyperledger/fabric-ca-server
++    container_name: ca_wholesaler
++    networks:
++      - test
++
++  ca_government:
++    image: hyperledger/fabric-ca:latest
++    labels:
++      service: hyperledger-fabric
++    environment:
++      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
++      - FABRIC_CA_SERVER_CA_NAME=ca-government
++      - FABRIC_CA_SERVER_TLS_ENABLED=true
++      - FABRIC_CA_SERVER_PORT=13054
++      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:23054
++    ports:
++      - "13054:13054"
++      - "23054:23054"
++    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
++    volumes:
++      - ../organizations/fabric-ca/government:/etc/hyperledger/fabric-ca-server
++    container_name: ca_government
+     networks:
+       - test
+ 
+diff --git a/test-network/compose/compose-couch.yaml b/test-network/compose/compose-couch.yaml
+index 3cbce5c..247001c 100644
+--- a/test-network/compose/compose-couch.yaml
++++ b/test-network/compose/compose-couch.yaml
+@@ -3,8 +3,6 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+-
+ networks:
+   test:
+     name: fabric_test
+diff --git a/test-network/compose/compose-test-net.yaml b/test-network/compose/compose-test-net.yaml
+index dcac21b..7c52d68 100644
+--- a/test-network/compose/compose-test-net.yaml
++++ b/test-network/compose/compose-test-net.yaml
+@@ -3,12 +3,12 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+-
+ volumes:
+   orderer.example.com:
+-  peer0.org1.example.com:
+-  peer0.org2.example.com:
++  peer0.vesselowner.example.com:
++  peer0.processor.example.com:
++  peer0.wholesaler.example.com:
++  peer0.government.example.com:
+ 
+ networks:
+   test:
+@@ -58,8 +58,8 @@ services:
+     networks:
+       - test
+ 
+-  peer0.org1.example.com:
+-    container_name: peer0.org1.example.com
++  peer0.vesselowner.example.com:
++    container_name: peer0.vesselowner.example.com
+     image: hyperledger/fabric-peer:latest
+     labels:
+       service: hyperledger-fabric
+@@ -73,22 +73,22 @@ services:
+       - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+       - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+       # Peer specific variables
+-      - CORE_PEER_ID=peer0.org1.example.com
+-      - CORE_PEER_ADDRESS=peer0.org1.example.com:7051
++      - CORE_PEER_ID=peer0.vesselowner.example.com
++      - CORE_PEER_ADDRESS=peer0.vesselowner.example.com:7051
+       - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+-      - CORE_PEER_CHAINCODEADDRESS=peer0.org1.example.com:7052
++      - CORE_PEER_CHAINCODEADDRESS=peer0.vesselowner.example.com:7052
+       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.example.com:7051
+-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org1.example.com:7051
+-      - CORE_PEER_LOCALMSPID=Org1MSP
++      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.vesselowner.example.com:7051
++      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.vesselowner.example.com:7051
++      - CORE_PEER_LOCALMSPID=VesselOwnerMSP
+       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+-      - CORE_OPERATIONS_LISTENADDRESS=peer0.org1.example.com:9444
++      - CORE_OPERATIONS_LISTENADDRESS=peer0.vesselowner.example.com:9444
+       - CORE_METRICS_PROVIDER=prometheus
+       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0org1"}
+       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+     volumes:
+-      - ../organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com:/etc/hyperledger/fabric
+-      - peer0.org1.example.com:/var/hyperledger/production
++      - ../organizations/peerOrganizations/vesselowner.example.com/peers/peer0.vesselowner.example.com:/etc/hyperledger/fabric
++      - peer0.vesselowner.example.com:/var/hyperledger/production
+     working_dir: /root
+     command: peer node start
+     ports:
+@@ -97,8 +97,8 @@ services:
+     networks:
+       - test
+ 
+-  peer0.org2.example.com:
+-    container_name: peer0.org2.example.com
++  peer0.processor.example.com:
++    container_name: peer0.processor.example.com
+     image: hyperledger/fabric-peer:latest
+     labels:
+       service: hyperledger-fabric
+@@ -112,22 +112,22 @@ services:
+       - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+       - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+       # Peer specific variables
+-      - CORE_PEER_ID=peer0.org2.example.com
+-      - CORE_PEER_ADDRESS=peer0.org2.example.com:9051
++      - CORE_PEER_ID=peer0.processor.example.com
++      - CORE_PEER_ADDRESS=peer0.processor.example.com:9051
+       - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
+-      - CORE_PEER_CHAINCODEADDRESS=peer0.org2.example.com:9052
++      - CORE_PEER_CHAINCODEADDRESS=peer0.processor.example.com:9052
+       - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
+-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org2.example.com:9051
+-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.example.com:9051
+-      - CORE_PEER_LOCALMSPID=Org2MSP
++      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.processor.example.com:9051
++      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.processor.example.com:9051
++      - CORE_PEER_LOCALMSPID=ProcessorMSP
+       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+-      - CORE_OPERATIONS_LISTENADDRESS=peer0.org2.example.com:9445
++      - CORE_OPERATIONS_LISTENADDRESS=peer0.processor.example.com:9445
+       - CORE_METRICS_PROVIDER=prometheus
+       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0org2"}
+       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+     volumes:
+-      - ../organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com:/etc/hyperledger/fabric
+-      - peer0.org2.example.com:/var/hyperledger/production
++      - ../organizations/peerOrganizations/processor.example.com/peers/peer0.processor.example.com:/etc/hyperledger/fabric
++      - peer0.processor.example.com:/var/hyperledger/production
+     working_dir: /root
+     command: peer node start
+     ports:
+@@ -135,3 +135,81 @@ services:
+       - 9445:9445
+     networks:
+       - test
++
++  peer0.wholesaler.example.com:
++    container_name: peer0.wholesaler.example.com
++    image: hyperledger/fabric-peer:latest
++    labels:
++      service: hyperledger-fabric
++    environment:
++      - FABRIC_CFG_PATH=/etc/hyperledger/peercfg
++      - FABRIC_LOGGING_SPEC=INFO
++      #- FABRIC_LOGGING_SPEC=DEBUG
++      - CORE_PEER_TLS_ENABLED=true
++      - CORE_PEER_PROFILE_ENABLED=false
++      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
++      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
++      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
++      # Peer specific variables
++      - CORE_PEER_ID=peer0.wholesaler.example.com
++      - CORE_PEER_ADDRESS=peer0.wholesaler.example.com:11051
++      - CORE_PEER_LISTENADDRESS=0.0.0.0:11051
++      - CORE_PEER_CHAINCODEADDRESS=peer0.wholesaler.example.com:11052
++      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:11052
++      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.wholesaler.example.com:11051
++      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.wholesaler.example.com:11051
++      - CORE_PEER_LOCALMSPID=WholesalerMSP
++      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
++      - CORE_OPERATIONS_LISTENADDRESS=peer0.wholesaler.example.com:11445
++      - CORE_METRICS_PROVIDER=prometheus
++      - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0org2"}
++      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
++    volumes:
++      - ../organizations/peerOrganizations/wholesaler.example.com/peers/peer0.wholesaler.example.com:/etc/hyperledger/fabric
++      - peer0.wholesaler.example.com:/var/hyperledger/production
++    working_dir: /root
++    command: peer node start
++    ports:
++      - 11051:11051
++      - 11445:11445
++    networks:
++      - test
++
++  peer0.government.example.com:
++    container_name: peer0.government.example.com
++    image: hyperledger/fabric-peer:latest
++    labels:
++      service: hyperledger-fabric
++    environment:
++      - FABRIC_CFG_PATH=/etc/hyperledger/peercfg
++      - FABRIC_LOGGING_SPEC=INFO
++      #- FABRIC_LOGGING_SPEC=DEBUG
++      - CORE_PEER_TLS_ENABLED=true
++      - CORE_PEER_PROFILE_ENABLED=false
++      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
++      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
++      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
++      # Peer specific variables
++      - CORE_PEER_ID=peer0.government.example.com
++      - CORE_PEER_ADDRESS=peer0.government.example.com:13051
++      - CORE_PEER_LISTENADDRESS=0.0.0.0:13051
++      - CORE_PEER_CHAINCODEADDRESS=peer0.government.example.com:13052
++      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:13052
++      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.government.example.com:13051
++      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.government.example.com:13051
++      - CORE_PEER_LOCALMSPID=GovernmentMSP
++      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
++      - CORE_OPERATIONS_LISTENADDRESS=peer0.government.example.com:13445
++      - CORE_METRICS_PROVIDER=prometheus
++      - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0org4"}
++      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
++    volumes:
++      - ../organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com:/etc/hyperledger/fabric
++      - peer0.government.example.com:/var/hyperledger/production
++    working_dir: /root
++    command: peer node start
++    ports:
++      - 13051:13051
++      - 13445:13445
++    networks:
++      - test
+\ No newline at end of file
+diff --git a/test-network/compose/docker/docker-compose-bft-test-net.yaml b/test-network/compose/docker/docker-compose-bft-test-net.yaml
+index 421d8e0..c23d8ec 100644
+--- a/test-network/compose/docker/docker-compose-bft-test-net.yaml
++++ b/test-network/compose/docker/docker-compose-bft-test-net.yaml
+@@ -3,7 +3,6 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+ services:
+   peer0.org1.example.com:
+     container_name: peer0.org1.example.com
+diff --git a/test-network/compose/docker/docker-compose-ca.yaml b/test-network/compose/docker/docker-compose-ca.yaml
+index 16732f0..a5a452f 100644
+--- a/test-network/compose/docker/docker-compose-ca.yaml
++++ b/test-network/compose/docker/docker-compose-ca.yaml
+@@ -3,5 +3,4 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+ 
+diff --git a/test-network/compose/docker/docker-compose-couch.yaml b/test-network/compose/docker/docker-compose-couch.yaml
+index 6ab883d..be66e62 100644
+--- a/test-network/compose/docker/docker-compose-couch.yaml
++++ b/test-network/compose/docker/docker-compose-couch.yaml
+@@ -3,4 +3,3 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+diff --git a/test-network/compose/docker/docker-compose-test-net.yaml b/test-network/compose/docker/docker-compose-test-net.yaml
+index 421d8e0..c857d9f 100644
+--- a/test-network/compose/docker/docker-compose-test-net.yaml
++++ b/test-network/compose/docker/docker-compose-test-net.yaml
+@@ -3,10 +3,9 @@
+ # SPDX-License-Identifier: Apache-2.0
+ #
+ 
+-version: '3.7'
+ services:
+-  peer0.org1.example.com:
+-    container_name: peer0.org1.example.com
++  peer0.vesselowner.example.com:
++    container_name: peer0.vesselowner.example.com
+     image: hyperledger/fabric-peer:latest
+     labels:
+       service: hyperledger-fabric
+@@ -18,8 +17,8 @@ services:
+       - ./docker/peercfg:/etc/hyperledger/peercfg
+       - ${DOCKER_SOCK}:/host/var/run/docker.sock
+ 
+-  peer0.org2.example.com:
+-    container_name: peer0.org2.example.com
++  peer0.processor.example.com:
++    container_name: peer0.processor.example.com
+     image: hyperledger/fabric-peer:latest
+     labels:
+       service: hyperledger-fabric
+@@ -30,3 +29,29 @@ services:
+     volumes:
+       - ./docker/peercfg:/etc/hyperledger/peercfg
+       - ${DOCKER_SOCK}:/host/var/run/docker.sock
++
++  peer0.wholesaler.example.com:
++    container_name: peer0.wholesaler.example.com
++    image: hyperledger/fabric-peer:latest
++    labels:
++      service: hyperledger-fabric
++    environment:
++      #Generic peer variables
++      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
++      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric_test
++    volumes:
++      - ./docker/peercfg:/etc/hyperledger/peercfg
++      - ${DOCKER_SOCK}:/host/var/run/docker.sock
++
++  peer0.government.example.com:
++    container_name: peer0.government.example.com
++    image: hyperledger/fabric-peer:latest
++    labels:
++      service: hyperledger-fabric
++    environment:
++      #Generic peer variables
++      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
++      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric_test
++    volumes:
++      - ./docker/peercfg:/etc/hyperledger/peercfg
++      - ${DOCKER_SOCK}:/host/var/run/docker.sock
+\ No newline at end of file
+diff --git a/test-network/configtx/configtx.yaml b/test-network/configtx/configtx.yaml
+index 6f783e2..8345db4 100644
+--- a/test-network/configtx/configtx.yaml
++++ b/test-network/configtx/configtx.yaml
+@@ -38,52 +38,86 @@ Organizations:
+         Rule: "OR('OrdererMSP.admin')"
+     OrdererEndpoints:
+       - orderer.example.com:7050
+-  - &Org1
++  - &VesselOwner
+     # DefaultOrg defines the organization which is used in the sampleconfig
+     # of the fabric.git development environment
+-    Name: Org1MSP
++    Name: VesselOwnerMSP
+     # ID to load the MSP definition as
+-    ID: Org1MSP
+-    MSPDir: ../organizations/peerOrganizations/org1.example.com/msp
++    ID: VesselOwnerMSP
++    MSPDir: ../organizations/peerOrganizations/vesselowner.example.com/msp
+     # Policies defines the set of policies at this level of the config tree
+     # For organization policies, their canonical path is usually
+     #   /Channel/<Application|Orderer>/<OrgName>/<PolicyName>
+     Policies:
+       Readers:
+         Type: Signature
+-        Rule: "OR('Org1MSP.admin', 'Org1MSP.peer', 'Org1MSP.client')"
++        Rule: "OR('VesselOwnerMSP.admin', 'VesselOwnerMSP.peer', 'VesselOwnerMSP.client')"
+       Writers:
+         Type: Signature
+-        Rule: "OR('Org1MSP.admin', 'Org1MSP.client')"
++        Rule: "OR('VesselOwnerMSP.admin', 'VesselOwnerMSP.client')"
+       Admins:
+         Type: Signature
+-        Rule: "OR('Org1MSP.admin')"
++        Rule: "OR('VesselOwnerMSP.admin')"
+       Endorsement:
+         Type: Signature
+-        Rule: "OR('Org1MSP.peer')"
+-  - &Org2
++        Rule: "OR('VesselOwnerMSP.peer')"
++  - &Processor
+     # DefaultOrg defines the organization which is used in the sampleconfig
+     # of the fabric.git development environment
+-    Name: Org2MSP
++    Name: ProcessorMSP
+     # ID to load the MSP definition as
+-    ID: Org2MSP
+-    MSPDir: ../organizations/peerOrganizations/org2.example.com/msp
++    ID: ProcessorMSP
++    MSPDir: ../organizations/peerOrganizations/processor.example.com/msp
+     # Policies defines the set of policies at this level of the config tree
+     # For organization policies, their canonical path is usually
+     #   /Channel/<Application|Orderer>/<OrgName>/<PolicyName>
+     Policies:
+       Readers:
+         Type: Signature
+-        Rule: "OR('Org2MSP.admin', 'Org2MSP.peer', 'Org2MSP.client')"
++        Rule: "OR('ProcessorMSP.admin', 'ProcessorMSP.peer', 'ProcessorMSP.client')"
+       Writers:
+         Type: Signature
+-        Rule: "OR('Org2MSP.admin', 'Org2MSP.client')"
++        Rule: "OR('ProcessorMSP.admin', 'ProcessorMSP.client')"
+       Admins:
+         Type: Signature
+-        Rule: "OR('Org2MSP.admin')"
++        Rule: "OR('ProcessorMSP.admin')"
+       Endorsement:
+         Type: Signature
+-        Rule: "OR('Org2MSP.peer')"
++        Rule: "OR('ProcessorMSP.peer')"
++  - &Wholesaler
++    Name: WholesalerMSP
++    ID: WholesalerMSP
++    MSPDir: ../organizations/peerOrganizations/wholesaler.example.com/msp
++    Policies:
++      Readers:
++        Type: Signature
++        Rule: "OR('WholesalerMSP.admin', 'WholesalerMSP.peer', 'WholesalerMSP.client')"
++      Writers:
++        Type: Signature
++        Rule: "OR('WholesalerMSP.admin', 'WholesalerMSP.client')"
++      Admins:
++        Type: Signature
++        Rule: "OR('WholesalerMSP.admin')"
++      Endorsement:
++        Type: Signature
++        Rule: "OR('WholesalerMSP.peer')"
++  - &Government
++    Name: GovernmentMSP
++    ID: GovernmentMSP
++    MSPDir: ../organizations/peerOrganizations/government.example.com/msp
++    Policies:
++      Readers:
++        Type: Signature
++        Rule: "OR('GovernmentMSP.admin', 'GovernmentMSP.peer', 'GovernmentMSP.client')"
++      Writers:
++        Type: Signature
++        Rule: "OR('GovernmentMSP.admin', 'GovernmentMSP.client')"
++      Admins:
++        Type: Signature
++        Rule: "OR('GovernmentMSP.admin')"
++      Endorsement:
++        Type: Signature
++        Rule: "OR('GovernmentMSP.peer')"
+ ################################################################################
+ #
+ #   SECTION: Capabilities
+@@ -274,6 +308,8 @@ Profiles:
+     Application:
+       <<: *ApplicationDefaults
+       Organizations:
+-        - *Org1
+-        - *Org2
++        - *VesselOwner
++        - *Processor
++        - *Wholesaler
++        - *Government
+       Capabilities: *ApplicationCapabilities
+diff --git a/test-network/network.config b/test-network/network.config
+index b0867bf..621a93a 100644
+--- a/test-network/network.config
++++ b/test-network/network.config
+@@ -20,7 +20,7 @@ CHANNEL_NAME="mychannel"
+ DATABASE="leveldb"
+ 
+ # default org (-org)
+-ORG=1
++ORG=vesselowner
+ 
+ # chaincode language defaults to "NA" (-ccl)
+ CC_SRC_LANGUAGE="go"
+diff --git a/test-network/network.sh b/test-network/network.sh
+index 9f8b375..f36578c 100755
+--- a/test-network/network.sh
++++ b/test-network/network.sh
+@@ -167,27 +167,47 @@ function createOrgs() {
+     fi
+     infoln "Generating certificates using cryptogen tool"
+ 
+-    infoln "Creating Org1 Identities"
++    infoln "Creating Vessel Owner Identities"
+ 
+     set -x
+-    cryptogen generate --config=./organizations/cryptogen/crypto-config-org1.yaml --output="organizations"
++    cryptogen generate --config=./organizations/cryptogen/crypto-config-vesselowner.yaml --output="organizations"
+     res=$?
+     { set +x; } 2>/dev/null
+     if [ $res -ne 0 ]; then
+       fatalln "Failed to generate certificates..."
+     fi
+ 
+-    infoln "Creating Org2 Identities"
++    infoln "Creating Processor Identities"
+ 
+     set -x
+-    cryptogen generate --config=./organizations/cryptogen/crypto-config-org2.yaml --output="organizations"
++    cryptogen generate --config=./organizations/cryptogen/crypto-config-processor.yaml --output="organizations"
+     res=$?
+     { set +x; } 2>/dev/null
+     if [ $res -ne 0 ]; then
+       fatalln "Failed to generate certificates..."
+     fi
+ 
+-    infoln "Creating Orderer Org Identities"
++    infoln "Creating Wholesaler Identities"
++
++    set -x
++    cryptogen generate --config=./organizations/cryptogen/crypto-config-wholesaler.yaml --output="organizations"
++    res=$?
++    { set +x; } 2>/dev/null
++    if [ $res -ne 0 ]; then
++      fatalln "Failed to generate certificates..."
++    fi
++
++    infoln "Creating Government Identities"
++
++    set -x
++    cryptogen generate --config=./organizations/cryptogen/crypto-config-government.yaml --output="organizations"
++    res=$?
++    { set +x; } 2>/dev/null
++    if [ $res -ne 0 ]; then
++      fatalln "Failed to generate certificates..."
++    fi
++
++    infoln "Creating Orderer Identities"
+ 
+     set -x
+     cryptogen generate --config=./organizations/cryptogen/crypto-config-orderer.yaml --output="organizations"
+@@ -229,7 +249,7 @@ function createOrgs() {
+     # Make sure CA files have been created
+     while :
+     do
+-      if [ ! -f "organizations/fabric-ca/org1/tls-cert.pem" ]; then
++      if [ ! -f "organizations/fabric-ca/vesselowner/tls-cert.pem" ]; then
+         sleep 1
+       else
+         break
+@@ -237,26 +257,34 @@ function createOrgs() {
+     done
+ 
+     # Make sure CA service is initialized and can accept requests before making register and enroll calls
+-    export FABRIC_CA_CLIENT_HOME=${PWD}/organizations/peerOrganizations/org1.example.com/
++    export FABRIC_CA_CLIENT_HOME=${PWD}/organizations/peerOrganizations/vesselowner.example.com/
+     COUNTER=0
+     rc=1
+     while [[ $rc -ne 0 && $COUNTER -lt $MAX_RETRY ]]; do
+       sleep 1
+       set -x
+-      fabric-ca-client getcainfo -u https://admin:adminpw@localhost:7054 --caname ca-org1 --tls.certfiles "${PWD}/organizations/fabric-ca/org1/ca-cert.pem"
++      fabric-ca-client getcainfo -u https://admin:adminpw@localhost:7054 --caname ca-vesselowner --tls.certfiles "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem"
+       res=$?
+     { set +x; } 2>/dev/null
+     rc=$res  # Update rc
+     COUNTER=$((COUNTER + 1))
+     done
+ 
+-    infoln "Creating Org1 Identities"
++    infoln "Creating VesselOwner Identities"
+ 
+-    createOrg1
++    createVesselOwner
+ 
+-    infoln "Creating Org2 Identities"
++    infoln "Creating Processor Identities"
++
++    createProcessor
++
++    infoln "Creating Wholesaler Identities"
++
++    createWholesaler
++
++    infoln "Creating Government Identities"
+ 
+-    createOrg2
++    createGovernment
+ 
+     infoln "Creating Orderer Org Identities"
+ 
+@@ -264,7 +292,7 @@ function createOrgs() {
+ 
+   fi
+ 
+-  infoln "Generating CCP files for Org1 and Org2"
++  infoln "Generating CCP files for VesselOwner, Processor, Wholesaler and Government organizations"
+   ./organizations/ccp-generate.sh
+ }
+ 
+@@ -334,12 +362,12 @@ function createChannel() {
+   CONTAINERS=($($CONTAINER_CLI ps | grep hyperledger/ | awk '{print $2}'))
+   len=$(echo ${#CONTAINERS[@]})
+ 
+-  if [[ $len -ge 4 ]] && [[ ! -d "organizations/peerOrganizations" ]]; then
++  if [[ $len -ge 6 ]] && [[ ! -d "organizations/peerOrganizations" ]]; then
+     echo "Bringing network down to sync certs with containers"
+     networkDown
+   fi
+ 
+-  [[ $len -lt 4 ]] || [[ ! -d "organizations/peerOrganizations" ]] && bringUpNetwork="true" || echo "Network Running Already"
++  [[ $len -lt 6 ]] || [[ ! -d "organizations/peerOrganizations" ]] && bringUpNetwork="true" || echo "Network Running Already"
+ 
+   if [ $bringUpNetwork == "true"  ]; then
+     infoln "Bringing up network"
+@@ -458,7 +486,7 @@ function networkDown() {
+   # Don't remove the generated artifacts -- note, the ledgers are always removed
+   if [ "$MODE" != "restart" ]; then
+     # Bring down the network, deleting the volumes
+-    ${CONTAINER_CLI} volume rm docker_orderer.example.com docker_peer0.org1.example.com docker_peer0.org2.example.com
++    ${CONTAINER_CLI} volume rm compose_orderer.example.com compose_peer0.vesselowner.example.com compose_peer0.processor.example.com compose_peer0.wholesaler.example.com compose_peer0.government.example.com
+     #Cleanup the chaincode containers
+     clearContainers
+     #Cleanup images
+@@ -466,8 +494,10 @@ function networkDown() {
+     # remove orderer block and other channel configuration transactions and certs
+     ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf system-genesis-block/*.block organizations/peerOrganizations organizations/ordererOrganizations'
+     ## remove fabric ca artifacts
+-    ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf organizations/fabric-ca/org1/msp organizations/fabric-ca/org1/tls-cert.pem organizations/fabric-ca/org1/ca-cert.pem organizations/fabric-ca/org1/IssuerPublicKey organizations/fabric-ca/org1/IssuerRevocationPublicKey organizations/fabric-ca/org1/fabric-ca-server.db'
+-    ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf organizations/fabric-ca/org2/msp organizations/fabric-ca/org2/tls-cert.pem organizations/fabric-ca/org2/ca-cert.pem organizations/fabric-ca/org2/IssuerPublicKey organizations/fabric-ca/org2/IssuerRevocationPublicKey organizations/fabric-ca/org2/fabric-ca-server.db'
++    ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf organizations/fabric-ca/vesselowner/msp organizations/fabric-ca/vesselowner/tls-cert.pem organizations/fabric-ca/vesselowner/ca-cert.pem organizations/fabric-ca/vesselowner/IssuerPublicKey organizations/fabric-ca/vesselowner/IssuerRevocationPublicKey organizations/fabric-ca/vesselowner/fabric-ca-server.db'
++    ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf organizations/fabric-ca/processor/msp organizations/fabric-ca/processor/tls-cert.pem organizations/fabric-ca/processor/ca-cert.pem organizations/fabric-ca/processor/IssuerPublicKey organizations/fabric-ca/processor/IssuerRevocationPublicKey organizations/fabric-ca/processor/fabric-ca-server.db'
++    ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf organizations/fabric-ca/wholesaler/msp organizations/fabric-ca/wholesaler/tls-cert.pem organizations/fabric-ca/wholesaler/ca-cert.pem organizations/fabric-ca/wholesaler/IssuerPublicKey organizations/fabric-ca/wholesaler/IssuerRevocationPublicKey organizations/fabric-ca/wholesaler/fabric-ca-server.db'
++    ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf organizations/fabric-ca/government/msp organizations/fabric-ca/government/tls-cert.pem organizations/fabric-ca/government/ca-cert.pem organizations/fabric-ca/government/IssuerPublicKey organizations/fabric-ca/government/IssuerRevocationPublicKey organizations/fabric-ca/government/fabric-ca-server.db'
+     ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf organizations/fabric-ca/ordererOrg/msp organizations/fabric-ca/ordererOrg/tls-cert.pem organizations/fabric-ca/ordererOrg/ca-cert.pem organizations/fabric-ca/ordererOrg/IssuerPublicKey organizations/fabric-ca/ordererOrg/IssuerRevocationPublicKey organizations/fabric-ca/ordererOrg/fabric-ca-server.db'
+     ${CONTAINER_CLI} run --rm -v "$(pwd):/data" busybox sh -c 'cd /data && rm -rf addOrg3/fabric-ca/org3/msp addOrg3/fabric-ca/org3/tls-cert.pem addOrg3/fabric-ca/org3/ca-cert.pem addOrg3/fabric-ca/org3/IssuerPublicKey addOrg3/fabric-ca/org3/IssuerRevocationPublicKey addOrg3/fabric-ca/org3/fabric-ca-server.db'
+     # remove channel and script artifacts
+diff --git a/test-network/organizations/ccp-generate.sh b/test-network/organizations/ccp-generate.sh
+index d0ee19b..d5a3120 100755
+--- a/test-network/organizations/ccp-generate.sh
++++ b/test-network/organizations/ccp-generate.sh
+@@ -5,41 +5,65 @@ function one_line_pem {
+ }
+ 
+ function json_ccp {
+-    local PP=$(one_line_pem $4)
+-    local CP=$(one_line_pem $5)
++    local PP=$(one_line_pem $5)
++    local CP=$(one_line_pem $6)
+     sed -e "s/\${ORG}/$1/" \
+-        -e "s/\${P0PORT}/$2/" \
+-        -e "s/\${CAPORT}/$3/" \
++        -e "s/\${ORGNAME}/$2/" \
++        -e "s/\${P0PORT}/$3/" \
++        -e "s/\${CAPORT}/$4/" \
+         -e "s#\${PEERPEM}#$PP#" \
+         -e "s#\${CAPEM}#$CP#" \
+         organizations/ccp-template.json
+ }
+ 
+ function yaml_ccp {
+-    local PP=$(one_line_pem $4)
+-    local CP=$(one_line_pem $5)
++    local PP=$(one_line_pem $5)
++    local CP=$(one_line_pem $6)
+     sed -e "s/\${ORG}/$1/" \
+-        -e "s/\${P0PORT}/$2/" \
+-        -e "s/\${CAPORT}/$3/" \
++        -e "s/\${ORGNAME}/$2/" \
++        -e "s/\${P0PORT}/$3/" \
++        -e "s/\${CAPORT}/$4/" \
+         -e "s#\${PEERPEM}#$PP#" \
+         -e "s#\${CAPEM}#$CP#" \
+         organizations/ccp-template.yaml | sed -e $'s/\\\\n/\\\n          /g'
+ }
+ 
+-ORG=1
++ORG=vesselowner
++ORGNAME=VesselOwner
+ P0PORT=7051
+ CAPORT=7054
+-PEERPEM=organizations/peerOrganizations/org1.example.com/tlsca/tlsca.org1.example.com-cert.pem
+-CAPEM=organizations/peerOrganizations/org1.example.com/ca/ca.org1.example.com-cert.pem
++PEERPEM=organizations/peerOrganizations/vesselowner.example.com/tlsca/tlsca.vesselowner.example.com-cert.pem
++CAPEM=organizations/peerOrganizations/vesselowner.example.com/ca/ca.vesselowner.example.com-cert.pem
+ 
+-echo "$(json_ccp $ORG $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/org1.example.com/connection-org1.json
+-echo "$(yaml_ccp $ORG $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/org1.example.com/connection-org1.yaml
++echo "$(json_ccp $ORG $ORGNAME $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/vesselowner.example.com/connection-vesselowner.json
++echo "$(yaml_ccp $ORG $ORGNAME $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/vesselowner.example.com/connection-vesselowner.yaml
+ 
+-ORG=2
++ORG=processor
++ORGNAME=Processor
+ P0PORT=9051
+ CAPORT=8054
+-PEERPEM=organizations/peerOrganizations/org2.example.com/tlsca/tlsca.org2.example.com-cert.pem
+-CAPEM=organizations/peerOrganizations/org2.example.com/ca/ca.org2.example.com-cert.pem
++PEERPEM=organizations/peerOrganizations/processor.example.com/tlsca/tlsca.processor.example.com-cert.pem
++CAPEM=organizations/peerOrganizations/processor.example.com/ca/ca.processor.example.com-cert.pem
+ 
+-echo "$(json_ccp $ORG $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/org2.example.com/connection-org2.json
+-echo "$(yaml_ccp $ORG $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/org2.example.com/connection-org2.yaml
++echo "$(json_ccp $ORG $ORGNAME $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/processor.example.com/connection-processor.json
++echo "$(yaml_ccp $ORG $ORGNAME $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/processor.example.com/connection-processor.yaml
++
++ORG=wholesaler
++ORGNAME=Wholesaler
++P0PORT=11051
++CAPORT=9054
++PEERPEM=organizations/peerOrganizations/wholesaler.example.com/tlsca/tlsca.wholesaler.example.com-cert.pem
++CAPEM=organizations/peerOrganizations/wholesaler.example.com/ca/ca.wholesaler.example.com-cert.pem
++
++echo "$(json_ccp $ORG $ORGNAME $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/wholesaler.example.com/connection-wholesaler.json
++echo "$(yaml_ccp $ORG $ORGNAME $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/wholesaler.example.com/connection-wholesaler.yaml
++
++ORG=government
++ORGNAME=Government
++P0PORT=13051
++CAPORT=13054
++PEERPEM=organizations/peerOrganizations/government.example.com/tlsca/tlsca.government.example.com-cert.pem
++CAPEM=organizations/peerOrganizations/government.example.com/ca/ca.government.example.com-cert.pem
++
++echo "$(json_ccp $ORG $ORGNAME $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/government.example.com/connection-government.json
++echo "$(yaml_ccp $ORG $ORGNAME $P0PORT $CAPORT $PEERPEM $CAPEM)" > organizations/peerOrganizations/government.example.com/connection-government.yaml
+\ No newline at end of file
+diff --git a/test-network/organizations/ccp-template.json b/test-network/organizations/ccp-template.json
+index e945bfe..8c0575c 100755
+--- a/test-network/organizations/ccp-template.json
++++ b/test-network/organizations/ccp-template.json
+@@ -2,7 +2,7 @@
+     "name": "test-network-org${ORG}",
+     "version": "1.0.0",
+     "client": {
+-        "organization": "Org${ORG}",
++        "organization": "${ORG}",
+         "connection": {
+             "timeout": {
+                 "peer": {
+@@ -12,13 +12,13 @@
+         }
+     },
+     "organizations": {
+-        "Org${ORG}": {
+-            "mspid": "Org${ORG}MSP",
++        "${ORGNAME}": {
++            "mspid": "${ORGNAME}MSP",
+             "peers": [
+-                "peer0.org${ORG}.example.com"
++                "peer0.${ORG}.example.com"
+             ],
+             "certificateAuthorities": [
+-                "ca.org${ORG}.example.com"
++                "ca.${ORG}.example.com"
+             ]
+         }
+     },
+@@ -29,15 +29,15 @@
+                 "pem": "${PEERPEM}"
+             },
+             "grpcOptions": {
+-                "ssl-target-name-override": "peer0.org${ORG}.example.com",
+-                "hostnameOverride": "peer0.org${ORG}.example.com"
++                "ssl-target-name-override": "peer0.${ORG}.example.com",
++                "hostnameOverride": "peer0.${ORG}.example.com"
+             }
+         }
+     },
+     "certificateAuthorities": {
+-        "ca.org${ORG}.example.com": {
++        "ca.${ORG}.example.com": {
+             "url": "https://localhost:${CAPORT}",
+-            "caName": "ca-org${ORG}",
++            "caName": "ca-${ORG}",
+             "tlsCACerts": {
+                 "pem": ["${CAPEM}"]
+             },
+diff --git a/test-network/organizations/ccp-template.yaml b/test-network/organizations/ccp-template.yaml
+index b675c18..5a247fa 100755
+--- a/test-network/organizations/ccp-template.yaml
++++ b/test-network/organizations/ccp-template.yaml
+@@ -1,19 +1,19 @@
+ ---
+-name: test-network-org${ORG}
++name: test-network-${ORG}
+ version: 1.0.0
+ client:
+-  organization: Org${ORG}
++  organization: ${ORGNAME}
+   connection:
+     timeout:
+       peer:
+         endorser: '300'
+ organizations:
+   Org${ORG}:
+-    mspid: Org${ORG}MSP
++    mspid: ${ORGNAME}MSP
+     peers:
+-    - peer0.org${ORG}.example.com
++    - peer0.${ORG}.example.com
+     certificateAuthorities:
+-    - ca.org${ORG}.example.com
++    - ca.${ORG}.example.com
+ peers:
+   peer0.org${ORG}.example.com:
+     url: grpcs://localhost:${P0PORT}
+@@ -21,12 +21,12 @@ peers:
+       pem: |
+           ${PEERPEM}
+     grpcOptions:
+-      ssl-target-name-override: peer0.org${ORG}.example.com
+-      hostnameOverride: peer0.org${ORG}.example.com
++      ssl-target-name-override: peer0.${ORG}.example.com
++      hostnameOverride: peer0.${ORG}.example.com
+ certificateAuthorities:
+   ca.org${ORG}.example.com:
+     url: https://localhost:${CAPORT}
+-    caName: ca-org${ORG}
++    caName: ca-${ORG}
+     tlsCACerts:
+       pem: 
+         - |
+diff --git a/test-network/organizations/cryptogen/crypto-config-org2.yaml b/test-network/organizations/cryptogen/crypto-config-government.yaml
+similarity index 97%
+copy from test-network/organizations/cryptogen/crypto-config-org2.yaml
+copy to test-network/organizations/cryptogen/crypto-config-government.yaml
+index 6298ff6..642f917 100755
+--- a/test-network/organizations/cryptogen/crypto-config-org2.yaml
++++ b/test-network/organizations/cryptogen/crypto-config-government.yaml
+@@ -8,10 +8,10 @@
+ # ---------------------------------------------------------------------------
+ PeerOrgs:
+   # ---------------------------------------------------------------------------
+-  # Org2
++  # Government
+   # ---------------------------------------------------------------------------
+-  - Name: Org2
+-    Domain: org2.example.com
++  - Name: Government
++    Domain: government.example.com
+     EnableNodeOUs: true
+     # ---------------------------------------------------------------------------
+     # "Specs"
+diff --git a/test-network/organizations/cryptogen/crypto-config-org2.yaml b/test-network/organizations/cryptogen/crypto-config-processor.yaml
+similarity index 98%
+copy from test-network/organizations/cryptogen/crypto-config-org2.yaml
+copy to test-network/organizations/cryptogen/crypto-config-processor.yaml
+index 6298ff6..96317ba 100755
+--- a/test-network/organizations/cryptogen/crypto-config-org2.yaml
++++ b/test-network/organizations/cryptogen/crypto-config-processor.yaml
+@@ -10,8 +10,8 @@ PeerOrgs:
+   # ---------------------------------------------------------------------------
+   # Org2
+   # ---------------------------------------------------------------------------
+-  - Name: Org2
+-    Domain: org2.example.com
++  - Name: Processor
++    Domain: processor.example.com
+     EnableNodeOUs: true
+     # ---------------------------------------------------------------------------
+     # "Specs"
+diff --git a/test-network/organizations/cryptogen/crypto-config-org1.yaml b/test-network/organizations/cryptogen/crypto-config-vesselowner.yaml
+similarity index 98%
+rename from test-network/organizations/cryptogen/crypto-config-org1.yaml
+rename to test-network/organizations/cryptogen/crypto-config-vesselowner.yaml
+index 4073845..1a7af93 100755
+--- a/test-network/organizations/cryptogen/crypto-config-org1.yaml
++++ b/test-network/organizations/cryptogen/crypto-config-vesselowner.yaml
+@@ -11,8 +11,8 @@ PeerOrgs:
+   # ---------------------------------------------------------------------------
+   # Org1
+   # ---------------------------------------------------------------------------
+-  - Name: Org1
+-    Domain: org1.example.com
++  - Name: VesselOwner
++    Domain: vesselowner.example.com
+     EnableNodeOUs: true
+     # ---------------------------------------------------------------------------
+     # "Specs"
+diff --git a/test-network/organizations/cryptogen/crypto-config-org2.yaml b/test-network/organizations/cryptogen/crypto-config-wholesaler.yaml
+similarity index 98%
+rename from test-network/organizations/cryptogen/crypto-config-org2.yaml
+rename to test-network/organizations/cryptogen/crypto-config-wholesaler.yaml
+index 6298ff6..409ed17 100755
+--- a/test-network/organizations/cryptogen/crypto-config-org2.yaml
++++ b/test-network/organizations/cryptogen/crypto-config-wholesaler.yaml
+@@ -10,8 +10,8 @@ PeerOrgs:
+   # ---------------------------------------------------------------------------
+   # Org2
+   # ---------------------------------------------------------------------------
+-  - Name: Org2
+-    Domain: org2.example.com
++  - Name: wholesaler
++    Domain: wholesaler.example.com
+     EnableNodeOUs: true
+     # ---------------------------------------------------------------------------
+     # "Specs"
+diff --git a/test-network/organizations/fabric-ca/org2/fabric-ca-server-config.yaml b/test-network/organizations/fabric-ca/government/fabric-ca-server-config.yaml
+old mode 100755
+new mode 100644
+similarity index 99%
+rename from test-network/organizations/fabric-ca/org2/fabric-ca-server-config.yaml
+rename to test-network/organizations/fabric-ca/government/fabric-ca-server-config.yaml
+index 0062daf..399c35b
+--- a/test-network/organizations/fabric-ca/org2/fabric-ca-server-config.yaml
++++ b/test-network/organizations/fabric-ca/government/fabric-ca-server-config.yaml
+@@ -80,7 +80,7 @@ tls:
+ #############################################################################
+ ca:
+   # Name of this CA
+-  name: Org2CA
++  name: GovernmentCA
+   # Key file (is only used to import a private key into BCCSP)
+   keyfile:
+   # Certificate file (default: ca-cert.pem)
+@@ -301,16 +301,14 @@ signing:
+ #     CA certificates though it can still issue end entity certificates.
+ ###########################################################################
+ csr:
+-   cn: ca.org2.example.com
++   cn: ca.government.example.com
+    names:
+-      - C: UK
+-        ST: "Hampshire"
+-        L: "Hursley"
+-        O: org2.example.com
++      - C: LK
++        O: government.example.com
+         OU:
+    hosts:
+      - localhost
+-     - org2.example.com
++     - government.example.com
+    ca:
+       expiry: 131400h
+       pathlength: 1
+diff --git a/test-network/organizations/fabric-ca/ordererOrg/fabric-ca-server-config.yaml b/test-network/organizations/fabric-ca/ordererOrg/fabric-ca-server-config.yaml
+index 0591b3e..cdde03c 100755
+--- a/test-network/organizations/fabric-ca/ordererOrg/fabric-ca-server-config.yaml
++++ b/test-network/organizations/fabric-ca/ordererOrg/fabric-ca-server-config.yaml
+@@ -303,9 +303,7 @@ signing:
+ csr:
+    cn: ca.example.com
+    names:
+-      - C: US
+-        ST: "New York"
+-        L: "New York"
++      - C: LK
+         O: example.com
+         OU:
+    hosts:
+diff --git a/test-network/organizations/fabric-ca/org1/fabric-ca-server-config.yaml b/test-network/organizations/fabric-ca/processor/fabric-ca-server-config.yaml
+similarity index 99%
+rename from test-network/organizations/fabric-ca/org1/fabric-ca-server-config.yaml
+rename to test-network/organizations/fabric-ca/processor/fabric-ca-server-config.yaml
+index becf445..3b45247 100755
+--- a/test-network/organizations/fabric-ca/org1/fabric-ca-server-config.yaml
++++ b/test-network/organizations/fabric-ca/processor/fabric-ca-server-config.yaml
+@@ -80,7 +80,7 @@ tls:
+ #############################################################################
+ ca:
+   # Name of this CA
+-  name: Org1CA
++  name: ProcessorCA
+   # Key file (is only used to import a private key into BCCSP)
+   keyfile:
+   # Certificate file (default: ca-cert.pem)
+@@ -301,16 +301,14 @@ signing:
+ #     CA certificates though it can still issue end entity certificates.
+ ###########################################################################
+ csr:
+-   cn: ca.org1.example.com
++   cn: ca.processor.example.com
+    names:
+-      - C: US
+-        ST: "North Carolina"
+-        L: "Durham"
+-        O: org1.example.com
++      - C: LK
++        O: processor.example.com
+         OU:
+    hosts:
+      - localhost
+-     - org1.example.com
++     - processor.example.com
+    ca:
+       expiry: 131400h
+       pathlength: 1
+diff --git a/test-network/organizations/fabric-ca/registerEnroll.sh b/test-network/organizations/fabric-ca/registerEnroll.sh
+index e264f1f..9224546 100755
+--- a/test-network/organizations/fabric-ca/registerEnroll.sh
++++ b/test-network/organizations/fabric-ca/registerEnroll.sh
+@@ -1,175 +1,347 @@
+ #!/usr/bin/env bash
+ 
+-function createOrg1() {
++function createVesselOwner() {
+   infoln "Enrolling the CA admin"
+-  mkdir -p organizations/peerOrganizations/org1.example.com/
++  mkdir -p organizations/peerOrganizations/vesselowner.example.com/
+ 
+-  export FABRIC_CA_CLIENT_HOME=${PWD}/organizations/peerOrganizations/org1.example.com/
++  export FABRIC_CA_CLIENT_HOME=${PWD}/organizations/peerOrganizations/vesselowner.example.com/
+ 
+   set -x
+-  fabric-ca-client enroll -u https://admin:adminpw@localhost:7054 --caname ca-org1 --tls.certfiles "${PWD}/organizations/fabric-ca/org1/ca-cert.pem"
++  fabric-ca-client enroll -u https://admin:adminpw@localhost:7054 --caname ca-vesselowner --tls.certfiles "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+   echo 'NodeOUs:
+   Enable: true
+   ClientOUIdentifier:
+-    Certificate: cacerts/localhost-7054-ca-org1.pem
++    Certificate: cacerts/localhost-7054-ca-vesselowner.pem
+     OrganizationalUnitIdentifier: client
+   PeerOUIdentifier:
+-    Certificate: cacerts/localhost-7054-ca-org1.pem
++    Certificate: cacerts/localhost-7054-ca-vesselowner.pem
+     OrganizationalUnitIdentifier: peer
+   AdminOUIdentifier:
+-    Certificate: cacerts/localhost-7054-ca-org1.pem
++    Certificate: cacerts/localhost-7054-ca-vesselowner.pem
+     OrganizationalUnitIdentifier: admin
+   OrdererOUIdentifier:
+-    Certificate: cacerts/localhost-7054-ca-org1.pem
+-    OrganizationalUnitIdentifier: orderer' > "${PWD}/organizations/peerOrganizations/org1.example.com/msp/config.yaml"
++    Certificate: cacerts/localhost-7054-ca-vesselowner.pem
++    OrganizationalUnitIdentifier: orderer' > "${PWD}/organizations/peerOrganizations/vesselowner.example.com/msp/config.yaml"
+ 
+   # Since the CA serves as both the organization CA and TLS CA, copy the org's root cert that was generated by CA startup into the org level ca and tlsca directories
+ 
+-  # Copy org1's CA cert to org1's /msp/tlscacerts directory (for use in the channel MSP definition)
+-  mkdir -p "${PWD}/organizations/peerOrganizations/org1.example.com/msp/tlscacerts"
+-  cp "${PWD}/organizations/fabric-ca/org1/ca-cert.pem" "${PWD}/organizations/peerOrganizations/org1.example.com/msp/tlscacerts/ca.crt"
++  # Copy vesselowner's CA cert to vesselowner's /msp/tlscacerts directory (for use in the channel MSP definition)
++  mkdir -p "${PWD}/organizations/peerOrganizations/vesselowner.example.com/msp/tlscacerts"
++  cp "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem" "${PWD}/organizations/peerOrganizations/vesselowner.example.com/msp/tlscacerts/ca.crt"
+ 
+-  # Copy org1's CA cert to org1's /tlsca directory (for use by clients)
+-  mkdir -p "${PWD}/organizations/peerOrganizations/org1.example.com/tlsca"
+-  cp "${PWD}/organizations/fabric-ca/org1/ca-cert.pem" "${PWD}/organizations/peerOrganizations/org1.example.com/tlsca/tlsca.org1.example.com-cert.pem"
++  # Copy vesselowner's CA cert to vesselowner's /tlsca directory (for use by clients)
++  mkdir -p "${PWD}/organizations/peerOrganizations/vesselowner.example.com/tlsca"
++  cp "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem" "${PWD}/organizations/peerOrganizations/vesselowner.example.com/tlsca/tlsca.vesselowner.example.com-cert.pem"
+ 
+-  # Copy org1's CA cert to org1's /ca directory (for use by clients)
+-  mkdir -p "${PWD}/organizations/peerOrganizations/org1.example.com/ca"
+-  cp "${PWD}/organizations/fabric-ca/org1/ca-cert.pem" "${PWD}/organizations/peerOrganizations/org1.example.com/ca/ca.org1.example.com-cert.pem"
++  # Copy vesselowner's CA cert to vesselowner's /ca directory (for use by clients)
++  mkdir -p "${PWD}/organizations/peerOrganizations/vesselowner.example.com/ca"
++  cp "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem" "${PWD}/organizations/peerOrganizations/vesselowner.example.com/ca/ca.vesselowner.example.com-cert.pem"
+ 
+   infoln "Registering peer0"
+   set -x
+-  fabric-ca-client register --caname ca-org1 --id.name peer0 --id.secret peer0pw --id.type peer --tls.certfiles "${PWD}/organizations/fabric-ca/org1/ca-cert.pem"
++  fabric-ca-client register --caname ca-vesselowner --id.name peer0 --id.secret peer0pw --id.type peer --tls.certfiles "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+   infoln "Registering user"
+   set -x
+-  fabric-ca-client register --caname ca-org1 --id.name user1 --id.secret user1pw --id.type client --tls.certfiles "${PWD}/organizations/fabric-ca/org1/ca-cert.pem"
++  fabric-ca-client register --caname ca-vesselowner --id.name user1 --id.secret user1pw --id.type client --tls.certfiles "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+   infoln "Registering the org admin"
+   set -x
+-  fabric-ca-client register --caname ca-org1 --id.name org1admin --id.secret org1adminpw --id.type admin --tls.certfiles "${PWD}/organizations/fabric-ca/org1/ca-cert.pem"
++  fabric-ca-client register --caname ca-vesselowner --id.name vesselowneradmin --id.secret vesselowneradminpw --id.type admin --tls.certfiles "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+   infoln "Generating the peer0 msp"
+   set -x
+-  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:7054 --caname ca-org1 -M "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/org1/ca-cert.pem"
++  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:7054 --caname ca-vesselowner -M "${PWD}/organizations/peerOrganizations/vesselowner.example.com/peers/peer0.vesselowner.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+-  cp "${PWD}/organizations/peerOrganizations/org1.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp/config.yaml"
++  cp "${PWD}/organizations/peerOrganizations/vesselowner.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/vesselowner.example.com/peers/peer0.vesselowner.example.com/msp/config.yaml"
+ 
+   infoln "Generating the peer0-tls certificates, use --csr.hosts to specify Subject Alternative Names"
+   set -x
+-  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:7054 --caname ca-org1 -M "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls" --enrollment.profile tls --csr.hosts peer0.org1.example.com --csr.hosts localhost --tls.certfiles "${PWD}/organizations/fabric-ca/org1/ca-cert.pem"
++  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:7054 --caname ca-vesselowner -M "${PWD}/organizations/peerOrganizations/vesselowner.example.com/peers/peer0.vesselowner.example.com/tls" --enrollment.profile tls --csr.hosts peer0.vesselowner.example.com --csr.hosts localhost --tls.certfiles "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+   # Copy the tls CA cert, server cert, server keystore to well known file names in the peer's tls directory that are referenced by peer startup config
+-  cp "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/tlscacerts/"* "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"
+-  cp "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/signcerts/"* "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.crt"
+-  cp "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/keystore/"* "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.key"
++  cp "${PWD}/organizations/peerOrganizations/vesselowner.example.com/peers/peer0.vesselowner.example.com/tls/tlscacerts/"* "${PWD}/organizations/peerOrganizations/vesselowner.example.com/peers/peer0.vesselowner.example.com/tls/ca.crt"
++  cp "${PWD}/organizations/peerOrganizations/vesselowner.example.com/peers/peer0.vesselowner.example.com/tls/signcerts/"* "${PWD}/organizations/peerOrganizations/vesselowner.example.com/peers/peer0.vesselowner.example.com/tls/server.crt"
++  cp "${PWD}/organizations/peerOrganizations/vesselowner.example.com/peers/peer0.vesselowner.example.com/tls/keystore/"* "${PWD}/organizations/peerOrganizations/vesselowner.example.com/peers/peer0.vesselowner.example.com/tls/server.key"
+ 
+   infoln "Generating the user msp"
+   set -x
+-  fabric-ca-client enroll -u https://user1:user1pw@localhost:7054 --caname ca-org1 -M "${PWD}/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/org1/ca-cert.pem"
++  fabric-ca-client enroll -u https://user1:user1pw@localhost:7054 --caname ca-vesselowner -M "${PWD}/organizations/peerOrganizations/vesselowner.example.com/users/User1@vesselowner.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+-  cp "${PWD}/organizations/peerOrganizations/org1.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/config.yaml"
++  cp "${PWD}/organizations/peerOrganizations/vesselowner.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/vesselowner.example.com/users/User1@vesselowner.example.com/msp/config.yaml"
+ 
+   infoln "Generating the org admin msp"
+   set -x
+-  fabric-ca-client enroll -u https://org1admin:org1adminpw@localhost:7054 --caname ca-org1 -M "${PWD}/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/org1/ca-cert.pem"
++  fabric-ca-client enroll -u https://vesselowneradmin:vesselowneradminpw@localhost:7054 --caname ca-vesselowner -M "${PWD}/organizations/peerOrganizations/vesselowner.example.com/users/Admin@vesselowner.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/vesselowner/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+-  cp "${PWD}/organizations/peerOrganizations/org1.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/config.yaml"
++  cp "${PWD}/organizations/peerOrganizations/vesselowner.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/vesselowner.example.com/users/Admin@vesselowner.example.com/msp/config.yaml"
+ }
+ 
+-function createOrg2() {
++function createProcessor() {
+   infoln "Enrolling the CA admin"
+-  mkdir -p organizations/peerOrganizations/org2.example.com/
++  mkdir -p organizations/peerOrganizations/processor.example.com/
+ 
+-  export FABRIC_CA_CLIENT_HOME=${PWD}/organizations/peerOrganizations/org2.example.com/
++  export FABRIC_CA_CLIENT_HOME=${PWD}/organizations/peerOrganizations/processor.example.com/
+ 
+   set -x
+-  fabric-ca-client enroll -u https://admin:adminpw@localhost:8054 --caname ca-org2 --tls.certfiles "${PWD}/organizations/fabric-ca/org2/ca-cert.pem"
++  fabric-ca-client enroll -u https://admin:adminpw@localhost:8054 --caname ca-processor --tls.certfiles "${PWD}/organizations/fabric-ca/processor/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+   echo 'NodeOUs:
+   Enable: true
+   ClientOUIdentifier:
+-    Certificate: cacerts/localhost-8054-ca-org2.pem
++    Certificate: cacerts/localhost-8054-ca-processor.pem
+     OrganizationalUnitIdentifier: client
+   PeerOUIdentifier:
+-    Certificate: cacerts/localhost-8054-ca-org2.pem
++    Certificate: cacerts/localhost-8054-ca-processor.pem
+     OrganizationalUnitIdentifier: peer
+   AdminOUIdentifier:
+-    Certificate: cacerts/localhost-8054-ca-org2.pem
++    Certificate: cacerts/localhost-8054-ca-processor.pem
+     OrganizationalUnitIdentifier: admin
+   OrdererOUIdentifier:
+-    Certificate: cacerts/localhost-8054-ca-org2.pem
+-    OrganizationalUnitIdentifier: orderer' > "${PWD}/organizations/peerOrganizations/org2.example.com/msp/config.yaml"
++    Certificate: cacerts/localhost-8054-ca-processor.pem
++    OrganizationalUnitIdentifier: orderer' > "${PWD}/organizations/peerOrganizations/processor.example.com/msp/config.yaml"
+ 
+   # Since the CA serves as both the organization CA and TLS CA, copy the org's root cert that was generated by CA startup into the org level ca and tlsca directories
+ 
+-  # Copy org2's CA cert to org2's /msp/tlscacerts directory (for use in the channel MSP definition)
+-  mkdir -p "${PWD}/organizations/peerOrganizations/org2.example.com/msp/tlscacerts"
+-  cp "${PWD}/organizations/fabric-ca/org2/ca-cert.pem" "${PWD}/organizations/peerOrganizations/org2.example.com/msp/tlscacerts/ca.crt"
++  # Copy processor's CA cert to processor's /msp/tlscacerts directory (for use in the channel MSP definition)
++  mkdir -p "${PWD}/organizations/peerOrganizations/processor.example.com/msp/tlscacerts"
++  cp "${PWD}/organizations/fabric-ca/processor/ca-cert.pem" "${PWD}/organizations/peerOrganizations/processor.example.com/msp/tlscacerts/ca.crt"
+ 
+-  # Copy org2's CA cert to org2's /tlsca directory (for use by clients)
+-  mkdir -p "${PWD}/organizations/peerOrganizations/org2.example.com/tlsca"
+-  cp "${PWD}/organizations/fabric-ca/org2/ca-cert.pem" "${PWD}/organizations/peerOrganizations/org2.example.com/tlsca/tlsca.org2.example.com-cert.pem"
++  # Copy processor's CA cert to processor's /tlsca directory (for use by clients)
++  mkdir -p "${PWD}/organizations/peerOrganizations/processor.example.com/tlsca"
++  cp "${PWD}/organizations/fabric-ca/processor/ca-cert.pem" "${PWD}/organizations/peerOrganizations/processor.example.com/tlsca/tlsca.processor.example.com-cert.pem"
+ 
+-  # Copy org2's CA cert to org2's /ca directory (for use by clients)
+-  mkdir -p "${PWD}/organizations/peerOrganizations/org2.example.com/ca"
+-  cp "${PWD}/organizations/fabric-ca/org2/ca-cert.pem" "${PWD}/organizations/peerOrganizations/org2.example.com/ca/ca.org2.example.com-cert.pem"
++  # Copy processor's CA cert to processor's /ca directory (for use by clients)
++  mkdir -p "${PWD}/organizations/peerOrganizations/processor.example.com/ca"
++  cp "${PWD}/organizations/fabric-ca/processor/ca-cert.pem" "${PWD}/organizations/peerOrganizations/processor.example.com/ca/ca.processor.example.com-cert.pem"
+ 
+   infoln "Registering peer0"
+   set -x
+-  fabric-ca-client register --caname ca-org2 --id.name peer0 --id.secret peer0pw --id.type peer --tls.certfiles "${PWD}/organizations/fabric-ca/org2/ca-cert.pem"
++  fabric-ca-client register --caname ca-processor --id.name peer0 --id.secret peer0pw --id.type peer --tls.certfiles "${PWD}/organizations/fabric-ca/processor/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+   infoln "Registering user"
+   set -x
+-  fabric-ca-client register --caname ca-org2 --id.name user1 --id.secret user1pw --id.type client --tls.certfiles "${PWD}/organizations/fabric-ca/org2/ca-cert.pem"
++  fabric-ca-client register --caname ca-processor --id.name user1 --id.secret user1pw --id.type client --tls.certfiles "${PWD}/organizations/fabric-ca/processor/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+   infoln "Registering the org admin"
+   set -x
+-  fabric-ca-client register --caname ca-org2 --id.name org2admin --id.secret org2adminpw --id.type admin --tls.certfiles "${PWD}/organizations/fabric-ca/org2/ca-cert.pem"
++  fabric-ca-client register --caname ca-processor --id.name processoradmin --id.secret processoradminpw --id.type admin --tls.certfiles "${PWD}/organizations/fabric-ca/processor/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+   infoln "Generating the peer0 msp"
+   set -x
+-  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:8054 --caname ca-org2 -M "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/org2/ca-cert.pem"
++  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:8054 --caname ca-processor -M "${PWD}/organizations/peerOrganizations/processor.example.com/peers/peer0.processor.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/processor/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+-  cp "${PWD}/organizations/peerOrganizations/org2.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/msp/config.yaml"
++  cp "${PWD}/organizations/peerOrganizations/processor.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/processor.example.com/peers/peer0.processor.example.com/msp/config.yaml"
+ 
+   infoln "Generating the peer0-tls certificates, use --csr.hosts to specify Subject Alternative Names"
+   set -x
+-  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:8054 --caname ca-org2 -M "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls" --enrollment.profile tls --csr.hosts peer0.org2.example.com --csr.hosts localhost --tls.certfiles "${PWD}/organizations/fabric-ca/org2/ca-cert.pem"
++  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:8054 --caname ca-processor -M "${PWD}/organizations/peerOrganizations/processor.example.com/peers/peer0.processor.example.com/tls" --enrollment.profile tls --csr.hosts peer0.processor.example.com --csr.hosts localhost --tls.certfiles "${PWD}/organizations/fabric-ca/processor/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+   # Copy the tls CA cert, server cert, server keystore to well known file names in the peer's tls directory that are referenced by peer startup config
+-  cp "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/tlscacerts/"* "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt"
+-  cp "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/signcerts/"* "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/server.crt"
+-  cp "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/keystore/"* "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/server.key"
++  cp "${PWD}/organizations/peerOrganizations/processor.example.com/peers/peer0.processor.example.com/tls/tlscacerts/"* "${PWD}/organizations/peerOrganizations/processor.example.com/peers/peer0.processor.example.com/tls/ca.crt"
++  cp "${PWD}/organizations/peerOrganizations/processor.example.com/peers/peer0.processor.example.com/tls/signcerts/"* "${PWD}/organizations/peerOrganizations/processor.example.com/peers/peer0.processor.example.com/tls/server.crt"
++  cp "${PWD}/organizations/peerOrganizations/processor.example.com/peers/peer0.processor.example.com/tls/keystore/"* "${PWD}/organizations/peerOrganizations/processor.example.com/peers/peer0.processor.example.com/tls/server.key"
+ 
+   infoln "Generating the user msp"
+   set -x
+-  fabric-ca-client enroll -u https://user1:user1pw@localhost:8054 --caname ca-org2 -M "${PWD}/organizations/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/org2/ca-cert.pem"
++  fabric-ca-client enroll -u https://user1:user1pw@localhost:8054 --caname ca-processor -M "${PWD}/organizations/peerOrganizations/processor.example.com/users/User1@processor.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/processor/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+-  cp "${PWD}/organizations/peerOrganizations/org2.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/config.yaml"
++  cp "${PWD}/organizations/peerOrganizations/processor.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/processor.example.com/users/User1@processor.example.com/msp/config.yaml"
+ 
+   infoln "Generating the org admin msp"
+   set -x
+-  fabric-ca-client enroll -u https://org2admin:org2adminpw@localhost:8054 --caname ca-org2 -M "${PWD}/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/org2/ca-cert.pem"
++  fabric-ca-client enroll -u https://processoradmin:processoradminpw@localhost:8054 --caname ca-processor -M "${PWD}/organizations/peerOrganizations/processor.example.com/users/Admin@processor.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/processor/ca-cert.pem"
+   { set +x; } 2>/dev/null
+ 
+-  cp "${PWD}/organizations/peerOrganizations/org2.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/config.yaml"
++  cp "${PWD}/organizations/peerOrganizations/processor.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/processor.example.com/users/Admin@processor.example.com/msp/config.yaml"
++}
++
++function createWholesaler() {
++  infoln "Enrolling the CA admin"
++  mkdir -p organizations/peerOrganizations/wholesaler.example.com/
++
++  export FABRIC_CA_CLIENT_HOME=${PWD}/organizations/peerOrganizations/wholesaler.example.com/
++
++  set -x
++  fabric-ca-client enroll -u https://admin:adminpw@localhost:11054 --caname ca-wholesaler --tls.certfiles "${PWD}/organizations/fabric-ca/wholesaler/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  echo 'NodeOUs:
++  Enable: true
++  ClientOUIdentifier:
++    Certificate: cacerts/localhost-11054-ca-wholesaler.pem
++    OrganizationalUnitIdentifier: client
++  PeerOUIdentifier:
++    Certificate: cacerts/localhost-11054-ca-wholesaler.pem
++    OrganizationalUnitIdentifier: peer
++  AdminOUIdentifier:
++    Certificate: cacerts/localhost-11054-ca-wholesaler.pem
++    OrganizationalUnitIdentifier: admin
++  OrdererOUIdentifier:
++    Certificate: cacerts/localhost-11054-ca-wholesaler.pem
++    OrganizationalUnitIdentifier: orderer' > "${PWD}/organizations/peerOrganizations/wholesaler.example.com/msp/config.yaml"
++
++  # Since the CA serves as both the organization CA and TLS CA, copy the org's root cert that was generated by CA startup into the org level ca and tlsca directories
++
++  # Copy wholesaler's CA cert to wholesaler's /msp/tlscacerts directory (for use in the channel MSP definition)
++  mkdir -p "${PWD}/organizations/peerOrganizations/wholesaler.example.com/msp/tlscacerts"
++  cp "${PWD}/organizations/fabric-ca/wholesaler/ca-cert.pem" "${PWD}/organizations/peerOrganizations/wholesaler.example.com/msp/tlscacerts/ca.crt"
++
++  # Copy wholesaler's CA cert to wholesaler's /tlsca directory (for use by clients)
++  mkdir -p "${PWD}/organizations/peerOrganizations/wholesaler.example.com/tlsca"
++  cp "${PWD}/organizations/fabric-ca/wholesaler/ca-cert.pem" "${PWD}/organizations/peerOrganizations/wholesaler.example.com/tlsca/tlsca.wholesaler.example.com-cert.pem"
++
++  # Copy wholesaler's CA cert to wholesaler's /ca directory (for use by clients)
++  mkdir -p "${PWD}/organizations/peerOrganizations/wholesaler.example.com/ca"
++  cp "${PWD}/organizations/fabric-ca/wholesaler/ca-cert.pem" "${PWD}/organizations/peerOrganizations/wholesaler.example.com/ca/ca.wholesaler.example.com-cert.pem"
++
++  infoln "Registering peer0"
++  set -x
++  fabric-ca-client register --caname ca-wholesaler --id.name peer0 --id.secret peer0pw --id.type peer --tls.certfiles "${PWD}/organizations/fabric-ca/wholesaler/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  infoln "Registering user"
++  set -x
++  fabric-ca-client register --caname ca-wholesaler --id.name user1 --id.secret user1pw --id.type client --tls.certfiles "${PWD}/organizations/fabric-ca/wholesaler/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  infoln "Registering the org admin"
++  set -x
++  fabric-ca-client register --caname ca-wholesaler --id.name wholesaleradmin --id.secret wholesaleradminpw --id.type admin --tls.certfiles "${PWD}/organizations/fabric-ca/wholesaler/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  infoln "Generating the peer0 msp"
++  set -x
++  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:11054 --caname ca-wholesaler -M "${PWD}/organizations/peerOrganizations/wholesaler.example.com/peers/peer0.wholesaler.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/wholesaler/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  cp "${PWD}/organizations/peerOrganizations/wholesaler.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/wholesaler.example.com/peers/peer0.wholesaler.example.com/msp/config.yaml"
++
++  infoln "Generating the peer0-tls certificates, use --csr.hosts to specify Subject Alternative Names"
++  set -x
++  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:11054 --caname ca-wholesaler -M "${PWD}/organizations/peerOrganizations/wholesaler.example.com/peers/peer0.wholesaler.example.com/tls" --enrollment.profile tls --csr.hosts peer0.wholesaler.example.com --csr.hosts localhost --tls.certfiles "${PWD}/organizations/fabric-ca/wholesaler/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  # Copy the tls CA cert, server cert, server keystore to well known file names in the peer's tls directory that are referenced by peer startup config
++  cp "${PWD}/organizations/peerOrganizations/wholesaler.example.com/peers/peer0.wholesaler.example.com/tls/tlscacerts/"* "${PWD}/organizations/peerOrganizations/wholesaler.example.com/peers/peer0.wholesaler.example.com/tls/ca.crt"
++  cp "${PWD}/organizations/peerOrganizations/wholesaler.example.com/peers/peer0.wholesaler.example.com/tls/signcerts/"* "${PWD}/organizations/peerOrganizations/wholesaler.example.com/peers/peer0.wholesaler.example.com/tls/server.crt"
++  cp "${PWD}/organizations/peerOrganizations/wholesaler.example.com/peers/peer0.wholesaler.example.com/tls/keystore/"* "${PWD}/organizations/peerOrganizations/wholesaler.example.com/peers/peer0.wholesaler.example.com/tls/server.key"
++
++  infoln "Generating the user msp"
++  set -x
++  fabric-ca-client enroll -u https://user1:user1pw@localhost:11054 --caname ca-wholesaler -M "${PWD}/organizations/peerOrganizations/wholesaler.example.com/users/User1@wholesaler.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/wholesaler/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  cp "${PWD}/organizations/peerOrganizations/wholesaler.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/wholesaler.example.com/users/User1@wholesaler.example.com/msp/config.yaml"
++
++  infoln "Generating the org admin msp"
++  set -x
++  fabric-ca-client enroll -u https://wholesaleradmin:wholesaleradminpw@localhost:11054 --caname ca-wholesaler -M "${PWD}/organizations/peerOrganizations/wholesaler.example.com/users/Admin@wholesaler.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/wholesaler/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  cp "${PWD}/organizations/peerOrganizations/wholesaler.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/wholesaler.example.com/users/Admin@wholesaler.example.com/msp/config.yaml"
++}
++
++function createGovernment() {
++  infoln "Enrolling the CA admin"
++  mkdir -p organizations/peerOrganizations/government.example.com/
++
++  export FABRIC_CA_CLIENT_HOME=${PWD}/organizations/peerOrganizations/government.example.com/
++
++  set -x
++  fabric-ca-client enroll -u https://admin:adminpw@localhost:13054 --caname ca-government --tls.certfiles "${PWD}/organizations/fabric-ca/government/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  echo 'NodeOUs:
++  Enable: true
++  ClientOUIdentifier:
++    Certificate: cacerts/localhost-13054-ca-government.pem
++    OrganizationalUnitIdentifier: client
++  PeerOUIdentifier:
++    Certificate: cacerts/localhost-13054-ca-government.pem
++    OrganizationalUnitIdentifier: peer
++  AdminOUIdentifier:
++    Certificate: cacerts/localhost-13054-ca-government.pem
++    OrganizationalUnitIdentifier: admin
++  OrdererOUIdentifier:
++    Certificate: cacerts/localhost-13054-ca-government.pem
++    OrganizationalUnitIdentifier: orderer' > "${PWD}/organizations/peerOrganizations/government.example.com/msp/config.yaml"
++
++  # Since the CA serves as both the organization CA and TLS CA, copy the org's root cert that was generated by CA startup into the org level ca and tlsca directories
++
++  # Copy government's CA cert to government's /msp/tlscacerts directory (for use in the channel MSP definition)
++  mkdir -p "${PWD}/organizations/peerOrganizations/government.example.com/msp/tlscacerts"
++  cp "${PWD}/organizations/fabric-ca/government/ca-cert.pem" "${PWD}/organizations/peerOrganizations/government.example.com/msp/tlscacerts/ca.crt"
++
++  # Copy government's CA cert to government's /tlsca directory (for use by clients)
++  mkdir -p "${PWD}/organizations/peerOrganizations/government.example.com/tlsca"
++  cp "${PWD}/organizations/fabric-ca/government/ca-cert.pem" "${PWD}/organizations/peerOrganizations/government.example.com/tlsca/tlsca.government.example.com-cert.pem"
++
++  # Copy government's CA cert to government's /ca directory (for use by clients)
++  mkdir -p "${PWD}/organizations/peerOrganizations/government.example.com/ca"
++  cp "${PWD}/organizations/fabric-ca/government/ca-cert.pem" "${PWD}/organizations/peerOrganizations/government.example.com/ca/ca.government.example.com-cert.pem"
++
++  infoln "Registering peer0"
++  set -x
++  fabric-ca-client register --caname ca-government --id.name peer0 --id.secret peer0pw --id.type peer --tls.certfiles "${PWD}/organizations/fabric-ca/government/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  infoln "Registering user"
++  set -x
++  fabric-ca-client register --caname ca-government --id.name user1 --id.secret user1pw --id.type client --tls.certfiles "${PWD}/organizations/fabric-ca/government/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  infoln "Registering the org admin"
++  set -x
++  fabric-ca-client register --caname ca-government --id.name governmentadmin --id.secret governmentadminpw --id.type admin --tls.certfiles "${PWD}/organizations/fabric-ca/government/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  infoln "Generating the peer0 msp"
++  set -x
++  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:13054 --caname ca-government -M "${PWD}/organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/government/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  cp "${PWD}/organizations/peerOrganizations/government.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com/msp/config.yaml"
++
++  infoln "Generating the peer0-tls certificates, use --csr.hosts to specify Subject Alternative Names"
++  set -x
++  fabric-ca-client enroll -u https://peer0:peer0pw@localhost:13054 --caname ca-government -M "${PWD}/organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com/tls" --enrollment.profile tls --csr.hosts peer0.government.example.com --csr.hosts localhost --tls.certfiles "${PWD}/organizations/fabric-ca/government/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  # Copy the tls CA cert, server cert, server keystore to well known file names in the peer's tls directory that are referenced by peer startup config
++  cp "${PWD}/organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com/tls/tlscacerts/"* "${PWD}/organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com/tls/ca.crt"
++  cp "${PWD}/organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com/tls/signcerts/"* "${PWD}/organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com/tls/server.crt"
++  cp "${PWD}/organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com/tls/keystore/"* "${PWD}/organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com/tls/server.key"
++
++  infoln "Generating the user msp"
++  set -x
++  fabric-ca-client enroll -u https://user1:user1pw@localhost:13054 --caname ca-government -M "${PWD}/organizations/peerOrganizations/government.example.com/users/User1@government.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/government/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  cp "${PWD}/organizations/peerOrganizations/government.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/government.example.com/users/User1@government.example.com/msp/config.yaml"
++
++  infoln "Generating the org admin msp"
++  set -x
++  fabric-ca-client enroll -u https://governmentadmin:governmentadminpw@localhost:13054 --caname ca-government -M "${PWD}/organizations/peerOrganizations/government.example.com/users/Admin@government.example.com/msp" --tls.certfiles "${PWD}/organizations/fabric-ca/government/ca-cert.pem"
++  { set +x; } 2>/dev/null
++
++  cp "${PWD}/organizations/peerOrganizations/government.example.com/msp/config.yaml" "${PWD}/organizations/peerOrganizations/government.example.com/users/Admin@government.example.com/msp/config.yaml"
+ }
+ 
+ function createOrderer() {
+diff --git a/test-network/organizations/fabric-ca/ordererOrg/fabric-ca-server-config.yaml b/test-network/organizations/fabric-ca/vesselowner/fabric-ca-server-config.yaml
+similarity index 99%
+copy from test-network/organizations/fabric-ca/ordererOrg/fabric-ca-server-config.yaml
+copy to test-network/organizations/fabric-ca/vesselowner/fabric-ca-server-config.yaml
+index 0591b3e..e565f2f 100755
+--- a/test-network/organizations/fabric-ca/ordererOrg/fabric-ca-server-config.yaml
++++ b/test-network/organizations/fabric-ca/vesselowner/fabric-ca-server-config.yaml
+@@ -80,7 +80,7 @@ tls:
+ #############################################################################
+ ca:
+   # Name of this CA
+-  name: OrdererCA
++  name: VesselOwnerCA
+   # Key file (is only used to import a private key into BCCSP)
+   keyfile:
+   # Certificate file (default: ca-cert.pem)
+@@ -301,16 +301,14 @@ signing:
+ #     CA certificates though it can still issue end entity certificates.
+ ###########################################################################
+ csr:
+-   cn: ca.example.com
++   cn: ca.vesselowner.example.com
+    names:
+-      - C: US
+-        ST: "New York"
+-        L: "New York"
+-        O: example.com
++      - C: LK
++        O: vesselowner.example.com
+         OU:
+    hosts:
+      - localhost
+-     - example.com
++     - vesselowner.example.com
+    ca:
+       expiry: 131400h
+       pathlength: 1
+diff --git a/test-network/organizations/fabric-ca/ordererOrg/fabric-ca-server-config.yaml b/test-network/organizations/fabric-ca/wholesaler/fabric-ca-server-config.yaml
+similarity index 99%
+copy from test-network/organizations/fabric-ca/ordererOrg/fabric-ca-server-config.yaml
+copy to test-network/organizations/fabric-ca/wholesaler/fabric-ca-server-config.yaml
+index 0591b3e..1fce192 100755
+--- a/test-network/organizations/fabric-ca/ordererOrg/fabric-ca-server-config.yaml
++++ b/test-network/organizations/fabric-ca/wholesaler/fabric-ca-server-config.yaml
+@@ -80,7 +80,7 @@ tls:
+ #############################################################################
+ ca:
+   # Name of this CA
+-  name: OrdererCA
++  name: WholesalerCA
+   # Key file (is only used to import a private key into BCCSP)
+   keyfile:
+   # Certificate file (default: ca-cert.pem)
+@@ -301,16 +301,14 @@ signing:
+ #     CA certificates though it can still issue end entity certificates.
+ ###########################################################################
+ csr:
+-   cn: ca.example.com
++   cn: ca.wholesaler.example.com
+    names:
+-      - C: US
+-        ST: "New York"
+-        L: "New York"
+-        O: example.com
++      - C: LK
++        O: wholesaler.example.com
+         OU:
+    hosts:
+      - localhost
+-     - example.com
++     - wholesaler.example.com
+    ca:
+       expiry: 131400h
+       pathlength: 1
+diff --git a/test-network/scripts/ccutils.sh b/test-network/scripts/ccutils.sh
+index 164d5bb..a33ac05 100644
+--- a/test-network/scripts/ccutils.sh
++++ b/test-network/scripts/ccutils.sh
+@@ -12,8 +12,8 @@ function installChaincode() {
+   fi
+   { set +x; } 2>/dev/null
+   cat log.txt
+-  verifyResult $res "Chaincode installation on peer0.org${ORG} has failed"
+-  successln "Chaincode is installed on peer0.org${ORG}"
++  verifyResult $res "Chaincode installation on peer0.${ORG} has failed"
++  successln "Chaincode is installed on peer0.${ORG}"
+ }
+ 
+ # queryInstalled PEER ORG
+@@ -25,8 +25,8 @@ function queryInstalled() {
+   res=$?
+   { set +x; } 2>/dev/null
+   cat log.txt
+-  verifyResult $res "Query installed on peer0.org${ORG} has failed"
+-  successln "Query installed successful on peer0.org${ORG} on channel"
++  verifyResult $res "Query installed on peer0.${ORG} has failed"
++  successln "Query installed successful on peer0.${ORG} on channel"
+ }
+ 
+ # approveForMyOrg VERSION PEER ORG
+@@ -38,8 +38,8 @@ function approveForMyOrg() {
+   res=$?
+   { set +x; } 2>/dev/null
+   cat log.txt
+-  verifyResult $res "Chaincode definition approved on peer0.org${ORG} on channel '$CHANNEL_NAME' failed"
+-  successln "Chaincode definition approved on peer0.org${ORG} on channel '$CHANNEL_NAME'"
++  verifyResult $res "Chaincode definition approved on peer0.${ORG} on channel '$CHANNEL_NAME' failed"
++  successln "Chaincode definition approved on peer0.${ORG} on channel '$CHANNEL_NAME'"
+ }
+ 
+ # checkCommitReadiness VERSION PEER ORG
+@@ -47,14 +47,14 @@ function checkCommitReadiness() {
+   ORG=$1
+   shift 1
+   setGlobals $ORG
+-  infoln "Checking the commit readiness of the chaincode definition on peer0.org${ORG} on channel '$CHANNEL_NAME'..."
++  infoln "Checking the commit readiness of the chaincode definition on peer0.${ORG} on channel '$CHANNEL_NAME'..."
+   local rc=1
+   local COUNTER=1
+   # continue to poll
+   # we either get a successful response, or reach MAX RETRY
+   while [ $rc -ne 0 -a $COUNTER -lt $MAX_RETRY ]; do
+     sleep $DELAY
+-    infoln "Attempting to check the commit readiness of the chaincode definition on peer0.org${ORG}, Retry after $DELAY seconds."
++    infoln "Attempting to check the commit readiness of the chaincode definition on peer0.${ORG}, Retry after $DELAY seconds."
+     set -x
+     peer lifecycle chaincode checkcommitreadiness --channelID $CHANNEL_NAME --name ${CC_NAME} --version ${CC_VERSION} --sequence ${CC_SEQUENCE} ${INIT_REQUIRED} ${CC_END_POLICY} ${CC_COLL_CONFIG} --output json >&log.txt
+     res=$?
+@@ -67,9 +67,9 @@ function checkCommitReadiness() {
+   done
+   cat log.txt
+   if test $rc -eq 0; then
+-    infoln "Checking the commit readiness of the chaincode definition successful on peer0.org${ORG} on channel '$CHANNEL_NAME'"
++    infoln "Checking the commit readiness of the chaincode definition successful on peer0.${ORG} on channel '$CHANNEL_NAME'"
+   else
+-    fatalln "After $MAX_RETRY attempts, Check commit readiness result on peer0.org${ORG} is INVALID!"
++    fatalln "After $MAX_RETRY attempts, Check commit readiness result on peer0.${ORG} is INVALID!"
+   fi
+ }
+ 
+@@ -87,7 +87,7 @@ function commitChaincodeDefinition() {
+   res=$?
+   { set +x; } 2>/dev/null
+   cat log.txt
+-  verifyResult $res "Chaincode definition commit failed on peer0.org${ORG} on channel '$CHANNEL_NAME' failed"
++  verifyResult $res "Chaincode definition commit failed on peer0.${ORG} on channel '$CHANNEL_NAME' failed"
+   successln "Chaincode definition committed on channel '$CHANNEL_NAME'"
+ }
+ 
+@@ -96,14 +96,14 @@ function queryCommitted() {
+   ORG=$1
+   setGlobals $ORG
+   EXPECTED_RESULT="Version: ${CC_VERSION}, Sequence: ${CC_SEQUENCE}, Endorsement Plugin: escc, Validation Plugin: vscc"
+-  infoln "Querying chaincode definition on peer0.org${ORG} on channel '$CHANNEL_NAME'..."
++  infoln "Querying chaincode definition on peer0.${ORG} on channel '$CHANNEL_NAME'..."
+   local rc=1
+   local COUNTER=1
+   # continue to poll
+   # we either get a successful response, or reach MAX RETRY
+   while [ $rc -ne 0 -a $COUNTER -lt $MAX_RETRY ]; do
+     sleep $DELAY
+-    infoln "Attempting to Query committed status on peer0.org${ORG}, Retry after $DELAY seconds."
++    infoln "Attempting to Query committed status on peer0.${ORG}, Retry after $DELAY seconds."
+     set -x
+     peer lifecycle chaincode querycommitted --channelID $CHANNEL_NAME --name ${CC_NAME} >&log.txt
+     res=$?
+@@ -114,16 +114,16 @@ function queryCommitted() {
+   done
+   cat log.txt
+   if test $rc -eq 0; then
+-    successln "Query chaincode definition successful on peer0.org${ORG} on channel '$CHANNEL_NAME'"
++    successln "Query chaincode definition successful on peer0.${ORG} on channel '$CHANNEL_NAME'"
+   else
+-    fatalln "After $MAX_RETRY attempts, Query chaincode definition result on peer0.org${ORG} is INVALID!"
++    fatalln "After $MAX_RETRY attempts, Query chaincode definition result on peer0.${ORG} is INVALID!"
+   fi
+ }
+ 
+ function chaincodeInvokeInit() {
+   parsePeerConnectionParameters $@
+   res=$?
+-  verifyResult $res "Invoke transaction failed on channel '$CHANNEL_NAME' due to uneven number of peer and org parameters "
++  verifyResult $res "Invoke transaction failed on channel '$CHANNEL_NAME' due to uneven number of peer and org parameters"
+ 
+   local rc=1
+   local COUNTER=1
+@@ -151,14 +151,14 @@ function chaincodeInvokeInit() {
+ function chaincodeQuery() {
+   ORG=$1
+   setGlobals $ORG
+-  infoln "Querying on peer0.org${ORG} on channel '$CHANNEL_NAME'..."
++  infoln "Querying on peer0.${ORG} on channel '$CHANNEL_NAME'..."
+   local rc=1
+   local COUNTER=1
+   # continue to poll
+   # we either get a successful response, or reach MAX RETRY
+   while [ $rc -ne 0 -a $COUNTER -lt $MAX_RETRY ]; do
+     sleep $DELAY
+-    infoln "Attempting to Query peer0.org${ORG}, Retry after $DELAY seconds."
++    infoln "Attempting to Query peer0.${ORG}, Retry after $DELAY seconds."
+     set -x
+     peer chaincode query -C $CHANNEL_NAME -n ${CC_NAME} -c '{"Args":["org.hyperledger.fabric:GetMetadata"]}' >&log.txt
+     res=$?
+@@ -168,9 +168,9 @@ function chaincodeQuery() {
+   done
+   cat log.txt
+   if test $rc -eq 0; then
+-    successln "Query successful on peer0.org${ORG} on channel '$CHANNEL_NAME'"
++    successln "Query successful on peer0.${ORG} on channel '$CHANNEL_NAME'"
+   else
+-    fatalln "After $MAX_RETRY attempts, Query result on peer0.org${ORG} is INVALID!"
++    fatalln "After $MAX_RETRY attempts, Query result on peer0.${ORG} is INVALID!"
+   fi
+ }
+ 
+@@ -293,16 +293,16 @@ chaincodeInvoke() {
+   CC_NAME=$3
+   CC_INVOKE_CONSTRUCTOR=$4
+   
+-  infoln "Invoking on peer0.org${ORG} on channel '$CHANNEL_NAME'..."
++  infoln "Invoking on peer0.${ORG} on channel '$CHANNEL_NAME'..."
+   local rc=1
+   local COUNTER=1
+   # continue to poll
+   # we either get a successful response, or reach MAX RETRY
+   while [ $rc -ne 0 -a $COUNTER -lt $MAX_RETRY ]; do
+     sleep $DELAY
+-    infoln "Attempting to Invoke on peer0.org${ORG}, Retry after $DELAY seconds."
++    infoln "Attempting to Invoke on peer0.${ORG}, Retry after $DELAY seconds."
+     set -x
+-    peer chaincode invoke -o localhost:7050 -C $CHANNEL_NAME -n ${CC_NAME} -c ${CC_INVOKE_CONSTRUCTOR} --tls --cafile $ORDERER_CA  --peerAddresses localhost:7051 --tlsRootCertFiles $PEER0_ORG1_CA --peerAddresses localhost:9051 --tlsRootCertFiles $PEER0_ORG2_CA  >&log.txt
++    peer chaincode invoke -o localhost:7050 -C $CHANNEL_NAME -n ${CC_NAME} -c ${CC_INVOKE_CONSTRUCTOR} --tls --cafile $ORDERER_CA  --peerAddresses localhost:7051 --tlsRootCertFiles $PEER0_VESSELOWNER_CA --peerAddresses localhost:9051 --tlsRootCertFiles $PEER0_PROCESSOR_CA  --peerAddresses localhost:11051 --tlsRootCertFiles $PEER0_WHOLESALER_CA --peerAddresses localhost:13051 --tlsRootCertFiles $PEER0_GOVERNMENT_CA >&log.txt
+     res=$?
+     { set +x; } 2>/dev/null
+     let rc=$res
+@@ -310,9 +310,9 @@ chaincodeInvoke() {
+   done
+   cat log.txt
+   if test $rc -eq 0; then
+-    successln "Invoke successful on peer0.org${ORG} on channel '$CHANNEL_NAME'"
++    successln "Invoke successful on peer0.${ORG} on channel '$CHANNEL_NAME'"
+   else
+-    fatalln "After $MAX_RETRY attempts, Invoke result on peer0.org${ORG} is INVALID!"
++    fatalln "After $MAX_RETRY attempts, Invoke result on peer0.${ORG} is INVALID!"
+   fi
+ }
+ 
+@@ -322,14 +322,14 @@ chaincodeQuery() {
+   CC_NAME=$3
+   CC_QUERY_CONSTRUCTOR=$4
+ 
+-  infoln "Querying on peer0.org${ORG} on channel '$CHANNEL_NAME'..."
++  infoln "Querying on peer0.${ORG} on channel '$CHANNEL_NAME'..."
+   local rc=1
+   local COUNTER=1
+   # continue to poll
+   # we either get a successful response, or reach MAX RETRY
+   while [ $rc -ne 0 -a $COUNTER -lt $MAX_RETRY ]; do
+     sleep $DELAY
+-    infoln "Attempting to Query peer0.org${ORG}, Retry after $DELAY seconds."
++    infoln "Attempting to Query peer0.${ORG}, Retry after $DELAY seconds."
+     set -x
+     peer chaincode query -C $CHANNEL_NAME -n ${CC_NAME} -c ${CC_QUERY_CONSTRUCTOR} >&log.txt
+     res=$?
+@@ -339,8 +339,8 @@ chaincodeQuery() {
+   done
+   cat log.txt
+   if test $rc -eq 0; then
+-    successln "Query successful on peer0.org${ORG} on channel '$CHANNEL_NAME'"
++    successln "Query successful on peer0.${ORG} on channel '$CHANNEL_NAME'"
+   else
+-    fatalln "After $MAX_RETRY attempts, Query result on peer0.org${ORG} is INVALID!"
++    fatalln "After $MAX_RETRY attempts, Query result on peer0.${ORG} is INVALID!"
+   fi
+ }
+\ No newline at end of file
+diff --git a/test-network/scripts/createChannel.sh b/test-network/scripts/createChannel.sh
+index af31fee..b02cc3c 100755
+--- a/test-network/scripts/createChannel.sh
++++ b/test-network/scripts/createChannel.sh
+@@ -27,7 +27,7 @@ if [ ! -d "channel-artifacts" ]; then
+ fi
+ 
+ createChannelGenesisBlock() {
+-  setGlobals 1
++  setGlobals vesselowner
+ 	which configtxgen
+ 	if [ "$?" -ne 0 ]; then
+ 		fatalln "configtxgen tool not found."
+@@ -87,7 +87,7 @@ joinChannel() {
+ 		COUNTER=$(expr $COUNTER + 1)
+ 	done
+ 	cat log.txt
+-	verifyResult $res "After $MAX_RETRY attempts, peer0.org${ORG} has failed to join channel '$CHANNEL_NAME' "
++	verifyResult $res "After $MAX_RETRY attempts, peer0.${ORG} has failed to join channel '$CHANNEL_NAME' "
+ }
+ 
+ setAnchorPeer() {
+@@ -113,15 +113,23 @@ createChannel $BFT
+ successln "Channel '$CHANNEL_NAME' created"
+ 
+ ## Join all the peers to the channel
+-infoln "Joining org1 peer to the channel..."
+-joinChannel 1
+-infoln "Joining org2 peer to the channel..."
+-joinChannel 2
++infoln "Joining vesselowner peer to the channel..."
++joinChannel vesselowner
++infoln "Joining processor peer to the channel..."
++joinChannel processor
++infoln "Joining wholesaler peer to the channel..."
++joinChannel wholesaler
++infoln "Joining government peer to the channel..."
++joinChannel government
+ 
+ ## Set the anchor peers for each org in the channel
+-infoln "Setting anchor peer for org1..."
+-setAnchorPeer 1
+-infoln "Setting anchor peer for org2..."
+-setAnchorPeer 2
++infoln "Setting anchor peer for vesselowner..."
++setAnchorPeer vesselowner
++infoln "Setting anchor peer for processor..."
++setAnchorPeer processor
++infoln "Setting anchor peer for wholesaler..."
++setAnchorPeer wholesaler
++infoln "Setting anchor peer for government..."
++setAnchorPeer government
+ 
+ successln "Channel '$CHANNEL_NAME' joined"
+diff --git a/test-network/scripts/deployCC.sh b/test-network/scripts/deployCC.sh
+index 249b310..48131dc 100755
+--- a/test-network/scripts/deployCC.sh
++++ b/test-network/scripts/deployCC.sh
+@@ -74,45 +74,75 @@ checkPrereqs
+ PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid ${CC_NAME}.tar.gz)
+ 
+ ## Install chaincode on peer0.org1 and peer0.org2
+-infoln "Installing chaincode on peer0.org1..."
+-installChaincode 1
+-infoln "Install chaincode on peer0.org2..."
+-installChaincode 2
++infoln "Installing chaincode on peer0.vesselowner..."
++installChaincode vesselowner
++infoln "Install chaincode on peer0.processor..."
++installChaincode processor
++infoln "Install chaincode on peer0.wholesaler..."
++installChaincode wholesaler
++infoln "Install chaincode on peer0.government..."
++installChaincode government
+ 
+ resolveSequence
+ 
+ ## query whether the chaincode is installed
+-queryInstalled 1
++queryInstalled vesselowner
+ 
+-## approve the definition for org1
+-approveForMyOrg 1
++## approve the definition for vesselowner
++approveForMyOrg vesselowner
+ 
+ ## check whether the chaincode definition is ready to be committed
+-## expect org1 to have approved and org2 not to
+-checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": false"
+-checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": false"
++## expect vesselowner to have approved and processor, wholesaler not to
++checkCommitReadiness vesselowner "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": false" "\"WholesalerMSP\": false" "\"GovernmentMSP\": false"
++checkCommitReadiness processor "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": false" "\"WholesalerMSP\": false" "\"GovernmentMSP\": false"
++checkCommitReadiness wholesaler "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": false" "\"WholesalerMSP\": false" "\"GovernmentMSP\": false"
++checkCommitReadiness government "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": false" "\"WholesalerMSP\": false" "\"GovernmentMSP\": false"
+ 
+-## now approve also for org2
+-approveForMyOrg 2
++## now approve also for processor
++approveForMyOrg processor
+ 
+ ## check whether the chaincode definition is ready to be committed
+-## expect them both to have approved
+-checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": true"
+-checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": true"
++## expect them both vesselowner and processor to have approved but wholesaler not to
++checkCommitReadiness vesselowner "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": false" "\"GovernmentMSP\": false"
++checkCommitReadiness processor "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": false" "\"GovernmentMSP\": false"
++checkCommitReadiness wholesaler "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": false" "\"GovernmentMSP\": false"
++checkCommitReadiness government "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": false" "\"GovernmentMSP\": false"
+ 
+-## now that we know for sure both orgs have approved, commit the definition
+-commitChaincodeDefinition 1 2
++## now approve also for wholesaler
++approveForMyOrg wholesaler
+ 
+-## query on both orgs to see that the definition committed successfully
+-queryCommitted 1
+-queryCommitted 2
++## check whether the chaincode definition is ready to be committed
++## expect vesselowner, processor, and wholesaler to have approved but government not to
++checkCommitReadiness vesselowner "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": true" "\"GovernmentMSP\": false"
++checkCommitReadiness processor "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": true" "\"GovernmentMSP\": false"
++checkCommitReadiness wholesaler "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": true" "\"GovernmentMSP\": false"
++checkCommitReadiness government "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": true" "\"GovernmentMSP\": false"
++
++## now approve also for government
++approveForMyOrg government
++
++## check whether the chaincode definition is ready to be committed
++## expect all four orgs to have approved
++checkCommitReadiness vesselowner "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": true" "\"GovernmentMSP\": true"
++checkCommitReadiness processor "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": true" "\"GovernmentMSP\": true"
++checkCommitReadiness wholesaler "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": true" "\"GovernmentMSP\": true"
++checkCommitReadiness government "\"VesselOwnerMSP\": true" "\"ProcessorMSP\": true" "\"WholesalerMSP\": true" "\"GovernmentMSP\": true"
++
++## now that we know for sure all orgs have approved, commit the definition
++commitChaincodeDefinition vesselowner processor wholesaler government
++
++## query all four orgs to see that the definition committed successfully
++queryCommitted vesselowner
++queryCommitted processor
++queryCommitted wholesaler
++queryCommitted government
+ 
+ ## Invoke the chaincode - this does require that the chaincode have the 'initLedger'
+ ## method defined
+ if [ "$CC_INIT_FCN" = "NA" ]; then
+   infoln "Chaincode initialization is not required"
+ else
+-  chaincodeInvokeInit 1 2
++  chaincodeInvokeInit vesselowner processor wholesaler government
+ fi
+ 
+ exit 0
+diff --git a/test-network/scripts/envVar.sh b/test-network/scripts/envVar.sh
+index 6e051ac..aa2a1d1 100755
+--- a/test-network/scripts/envVar.sh
++++ b/test-network/scripts/envVar.sh
+@@ -19,9 +19,10 @@ TEST_NETWORK_HOME=${TEST_NETWORK_HOME:-${PWD}}
+ 
+ export CORE_PEER_TLS_ENABLED=true
+ export ORDERER_CA=${TEST_NETWORK_HOME}/organizations/ordererOrganizations/example.com/tlsca/tlsca.example.com-cert.pem
+-export PEER0_ORG1_CA=${TEST_NETWORK_HOME}/organizations/peerOrganizations/org1.example.com/tlsca/tlsca.org1.example.com-cert.pem
+-export PEER0_ORG2_CA=${TEST_NETWORK_HOME}/organizations/peerOrganizations/org2.example.com/tlsca/tlsca.org2.example.com-cert.pem
+-export PEER0_ORG3_CA=${TEST_NETWORK_HOME}/organizations/peerOrganizations/org3.example.com/tlsca/tlsca.org3.example.com-cert.pem
++export PEER0_VESSELOWNER_CA=${TEST_NETWORK_HOME}/organizations/peerOrganizations/vesselowner.example.com/tlsca/tlsca.vesselowner.example.com-cert.pem
++export PEER0_PROCESSOR_CA=${TEST_NETWORK_HOME}/organizations/peerOrganizations/processor.example.com/tlsca/tlsca.processor.example.com-cert.pem
++export PEER0_WHOLESALER_CA=${TEST_NETWORK_HOME}/organizations/peerOrganizations/wholesaler.example.com/tlsca/tlsca.wholesaler.example.com-cert.pem
++export PEER0_GOVERNMENT_CA=${TEST_NETWORK_HOME}/organizations/peerOrganizations/government.example.com/tlsca/tlsca.government.example.com-cert.pem
+ 
+ # Set environment variables for the peer org
+ setGlobals() {
+@@ -32,21 +33,26 @@ setGlobals() {
+     USING_ORG="${OVERRIDE_ORG}"
+   fi
+   infoln "Using organization ${USING_ORG}"
+-  if [ $USING_ORG -eq 1 ]; then
+-    export CORE_PEER_LOCALMSPID=Org1MSP
+-    export CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_ORG1_CA
+-    export CORE_PEER_MSPCONFIGPATH=${TEST_NETWORK_HOME}/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
++  if [[ "$USING_ORG" = "vesselowner" ]]; then
++    export CORE_PEER_LOCALMSPID=VesselOwnerMSP
++    export CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_VESSELOWNER_CA
++    export CORE_PEER_MSPCONFIGPATH=${TEST_NETWORK_HOME}/organizations/peerOrganizations/vesselowner.example.com/users/Admin@vesselowner.example.com/msp
+     export CORE_PEER_ADDRESS=localhost:7051
+-  elif [ $USING_ORG -eq 2 ]; then
+-    export CORE_PEER_LOCALMSPID=Org2MSP
+-    export CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_ORG2_CA
+-    export CORE_PEER_MSPCONFIGPATH=${TEST_NETWORK_HOME}/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
++  elif [[ "$USING_ORG" = "processor" ]]; then
++    export CORE_PEER_LOCALMSPID=ProcessorMSP
++    export CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_PROCESSOR_CA
++    export CORE_PEER_MSPCONFIGPATH=${TEST_NETWORK_HOME}/organizations/peerOrganizations/processor.example.com/users/Admin@processor.example.com/msp
+     export CORE_PEER_ADDRESS=localhost:9051
+-  elif [ $USING_ORG -eq 3 ]; then
+-    export CORE_PEER_LOCALMSPID=Org3MSP
+-    export CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_ORG3_CA
+-    export CORE_PEER_MSPCONFIGPATH=${TEST_NETWORK_HOME}/organizations/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp
++  elif [[ "$USING_ORG" = "wholesaler" ]]; then
++    export CORE_PEER_LOCALMSPID=WholesalerMSP
++    export CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_WHOLESALER_CA
++    export CORE_PEER_MSPCONFIGPATH=${TEST_NETWORK_HOME}/organizations/peerOrganizations/wholesaler.example.com/users/Admin@wholesaler.example.com/msp
+     export CORE_PEER_ADDRESS=localhost:11051
++  elif [[ "$USING_ORG" = "government" ]]; then
++    export CORE_PEER_LOCALMSPID=GovernmentMSP
++    export CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_GOVERNMENT_CA
++    export CORE_PEER_MSPCONFIGPATH=${TEST_NETWORK_HOME}/organizations/peerOrganizations/government.example.com/users/Admin@government.example.com/msp
++    export CORE_PEER_ADDRESS=localhost:13051
+   else
+     errorln "ORG Unknown"
+   fi
+@@ -64,17 +70,16 @@ parsePeerConnectionParameters() {
+   PEERS=""
+   while [ "$#" -gt 0 ]; do
+     setGlobals $1
+-    PEER="peer0.org$1"
++    PEER="peer0.$1"
+     ## Set peer addresses
+-    if [ -z "$PEERS" ]
+-    then
+-	PEERS="$PEER"
++    if [ -z "$PEERS" ]; then
++	    PEERS="$PEER"
+     else
+-	PEERS="$PEERS $PEER"
++	    PEERS="$PEERS $PEER"
+     fi
+     PEER_CONN_PARMS=("${PEER_CONN_PARMS[@]}" --peerAddresses $CORE_PEER_ADDRESS)
+     ## Set path to TLS certificate
+-    CA=PEER0_ORG$1_CA
++    CA=PEER0_$(echo $1 | tr '[:lower:]' '[:upper:]')_CA
+     TLSINFO=(--tlsRootCertFiles "${!CA}")
+     PEER_CONN_PARMS=("${PEER_CONN_PARMS[@]}" "${TLSINFO[@]}")
+     # shift by one to get to the next organization
+diff --git a/test-network/scripts/setAnchorPeer.sh b/test-network/scripts/setAnchorPeer.sh
+index f64f1bf..b4ca95d 100755
+--- a/test-network/scripts/setAnchorPeer.sh
++++ b/test-network/scripts/setAnchorPeer.sh
+@@ -20,17 +20,20 @@ createAnchorPeerUpdate() {
+   infoln "Fetching channel config for channel $CHANNEL_NAME"
+   fetchChannelConfig $ORG $CHANNEL_NAME ${TEST_NETWORK_HOME}/channel-artifacts/${CORE_PEER_LOCALMSPID}config.json
+ 
+-  infoln "Generating anchor peer update transaction for Org${ORG} on channel $CHANNEL_NAME"
++  infoln "Generating anchor peer update transaction for ${ORG} on channel $CHANNEL_NAME"
+ 
+-  if [ $ORG -eq 1 ]; then
+-    HOST="peer0.org1.example.com"
++  if [[ "$ORG" = "vesselowner" ]]; then
++    HOST="peer0.vesselowner.example.com"
+     PORT=7051
+-  elif [ $ORG -eq 2 ]; then
+-    HOST="peer0.org2.example.com"
++  elif [[ "$ORG" = "processor" ]]; then
++    HOST="peer0.processor.example.com"
+     PORT=9051
+-  elif [ $ORG -eq 3 ]; then
+-    HOST="peer0.org3.example.com"
++  elif [[ "$ORG" = "wholesaler" ]]; then
++    HOST="peer0.wholesaler.example.com"
+     PORT=11051
++  elif [[ "$ORG" = "government" ]]; then
++    HOST="peer0.government.example.com"
++    PORT=13051
+   else
+     errorln "Org${ORG} unknown"
+   fi
+diff --git a/test-network/setOrgEnv.sh b/test-network/setOrgEnv.sh
+index 630ab87..5a30a8f 100755
+--- a/test-network/setOrgEnv.sh
++++ b/test-network/setOrgEnv.sh
+@@ -5,8 +5,8 @@
+ 
+ 
+ 
+-# default to using Org1
+-ORG=${1:-Org1}
++# default to using VesselOwner (Org1)
++ORG=${1:-VesselOwner}
+ 
+ # Exit on first error, print all commands.
+ set -e
+@@ -16,41 +16,57 @@ set -o pipefail
+ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+ 
+ ORDERER_CA=${DIR}/test-network/organizations/ordererOrganizations/example.com/tlsca/tlsca.example.com-cert.pem
+-PEER0_ORG1_CA=${DIR}/test-network/organizations/peerOrganizations/org1.example.com/tlsca/tlsca.org1.example.com-cert.pem
+-PEER0_ORG2_CA=${DIR}/test-network/organizations/peerOrganizations/org2.example.com/tlsca/tlsca.org2.example.com-cert.pem
+-PEER0_ORG3_CA=${DIR}/test-network/organizations/peerOrganizations/org3.example.com/tlsca/tlsca.org3.example.com-cert.pem
++PEER0_VESSELOWNER_CA=${DIR}/test-network/organizations/peerOrganizations/vesselowner.example.com/tlsca/tlsca.vesselowner.example.com-cert.pem
++PEER0_PROCESSOR_CA=${DIR}/test-network/organizations/peerOrganizations/processor.example.com/tlsca/tlsca.processor.example.com-cert.pem
++PEER0_WHOLESALER_CA=${DIR}/test-network/organizations/peerOrganizations/wholesaler.example.com/tlsca/tlsca.wholesaler.example.com-cert.pem
++PEER0_GOVERNMENT_CA=${DIR}/test-network/organizations/peerOrganizations/government.example.com/tlsca/tlsca.government.example.com-cert.pem
+ 
+ 
+-if [[ ${ORG,,} == "org1" || ${ORG,,} == "digibank" ]]; then
++if [[ ${ORG,,} == "vesselowner" || ${ORG,,} == "org1" ]]; then
+ 
+-   CORE_PEER_LOCALMSPID=Org1MSP
+-   CORE_PEER_MSPCONFIGPATH=${DIR}/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
++   CORE_PEER_LOCALMSPID=VesselOwnerMSP
++   CORE_PEER_MSPCONFIGPATH=${DIR}/test-network/organizations/peerOrganizations/vesselowner.example.com/users/Admin@vesselowner.example.com/msp
+    CORE_PEER_ADDRESS=localhost:7051
+-   CORE_PEER_TLS_ROOTCERT_FILE=${DIR}/test-network/organizations/peerOrganizations/org1.example.com/tlsca/tlsca.org1.example.com-cert.pem
++   CORE_PEER_TLS_ROOTCERT_FILE=${DIR}/test-network/organizations/peerOrganizations/vesselowner.example.com/tlsca/tlsca.vesselowner.example.com-cert.pem
+ 
+-elif [[ ${ORG,,} == "org2" || ${ORG,,} == "magnetocorp" ]]; then
++elif [[ ${ORG,,} == "processor" || ${ORG,,} == "org2" ]]; then
+ 
+-   CORE_PEER_LOCALMSPID=Org2MSP
+-   CORE_PEER_MSPCONFIGPATH=${DIR}/test-network/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
++   CORE_PEER_LOCALMSPID=ProcessorMSP
++   CORE_PEER_MSPCONFIGPATH=${DIR}/test-network/organizations/peerOrganizations/processor.example.com/users/Admin@processor.example.com/msp
+    CORE_PEER_ADDRESS=localhost:9051
+-   CORE_PEER_TLS_ROOTCERT_FILE=${DIR}/test-network/organizations/peerOrganizations/org2.example.com/tlsca/tlsca.org2.example.com-cert.pem
++   CORE_PEER_TLS_ROOTCERT_FILE=${DIR}/test-network/organizations/peerOrganizations/processor.example.com/tlsca/tlsca.processor.example.com-cert.pem
++
++elif [[ ${ORG,,} == "wholesaler" || ${ORG,,} == "org3" ]]; then
++
++   CORE_PEER_LOCALMSPID=WholesalerMSP
++   CORE_PEER_MSPCONFIGPATH=${DIR}/test-network/organizations/peerOrganizations/wholesaler.example.com/users/Admin@wholesaler.example.com/msp
++   CORE_PEER_ADDRESS=localhost:11051
++   CORE_PEER_TLS_ROOTCERT_FILE=${DIR}/test-network/organizations/peerOrganizations/wholesaler.example.com/tlsca/tlsca.wholesaler.example.com-cert.pem
++
++elif [[ ${ORG,,} == "government" || ${ORG,,} == "org4" ]]; then
++
++   CORE_PEER_LOCALMSPID=GovernmentMSP
++   CORE_PEER_MSPCONFIGPATH=${DIR}/test-network/organizations/peerOrganizations/government.example.com/users/Admin@government.example.com/msp
++   CORE_PEER_ADDRESS=localhost:13051
++   CORE_PEER_TLS_ROOTCERT_FILE=${DIR}/test-network/organizations/peerOrganizations/government.example.com/tlsca/tlsca.government.example.com-cert.pem
+ 
+ else
+-   echo "Unknown \"$ORG\", please choose Org1/Digibank or Org2/Magnetocorp"
+-   echo "For example to get the environment variables to set upa Org2 shell environment run:  ./setOrgEnv.sh Org2"
++   echo "Unknown \"$ORG\", please choose VesselOwner/Org1, Processor/Org2, Wholesaler/Org3, or Government/Org4"
++   echo "For example to get the environment variables to set up a Processor shell environment run:  ./setOrgEnv.sh Processor"
+    echo
+    echo "This can be automated to set them as well with:"
+    echo
+-   echo 'export $(./setOrgEnv.sh Org2 | xargs)'
++   echo 'export $(./setOrgEnv.sh Processor | xargs)'
+    exit 1
+ fi
+ 
+ # output the variables that need to be set
+ echo "CORE_PEER_TLS_ENABLED=true"
+ echo "ORDERER_CA=${ORDERER_CA}"
+-echo "PEER0_ORG1_CA=${PEER0_ORG1_CA}"
+-echo "PEER0_ORG2_CA=${PEER0_ORG2_CA}"
+-echo "PEER0_ORG3_CA=${PEER0_ORG3_CA}"
++echo "PEER0_VESSELOWNER_CA=${PEER0_VESSELOWNER_CA}"
++echo "PEER0_PROCESSOR_CA=${PEER0_PROCESSOR_CA}"
++echo "PEER0_WHOLESALER_CA=${PEER0_WHOLESALER_CA}"
++echo "PEER0_GOVERNMENT_CA=${PEER0_GOVERNMENT_CA}"
+ 
+ echo "CORE_PEER_MSPCONFIGPATH=${CORE_PEER_MSPCONFIGPATH}"
+ echo "CORE_PEER_ADDRESS=${CORE_PEER_ADDRESS}"
