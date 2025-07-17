@@ -135,6 +135,71 @@ export default class DatabaseManager {
         return result ? result.msp_path : null;
     }
 
+    public async getCaNameByOrganization(organization: string): Promise<string | null> {
+        if (!this.db) {
+            throw new Error('Database is probably closed');
+        }
+
+        const result = await this.db.get(
+            'SELECT ca_name FROM enrollment WHERE organization = ?',
+            [organization]
+        );
+
+        return result ? result.ca_name : null;
+    }
+
+    public async getCaClientHomeByOrganization(organization: string): Promise<string | null> {
+        if (!this.db) {
+            throw new Error('Database is probably closed');
+        }
+
+        const result = await this.db.get(
+            'SELECT ca_client_home FROM enrollment WHERE organization = ?',
+            [organization]
+        );
+
+        return result ? result.ca_client_home : null;
+    }
+
+    public async getCaUrlByOrganization(organization: string): Promise<string | null> {
+        if (!this.db) {
+            throw new Error('Database is probably closed');
+        }
+
+        const result = await this.db.get(
+            'SELECT ca_url FROM enrollment WHERE organization = ?',
+            [organization]
+        );
+
+        return result ? result.ca_url : null;
+    }
+
+    public async getUserDirByOrganization(organization: string): Promise<string | null> {
+        if (!this.db) {
+            throw new Error('Database is probably closed');
+        }
+
+        const result = await this.db.get(
+            'SELECT user_dir FROM enrollment WHERE organization = ?',
+            [organization]
+        );
+
+        return result ? result.user_dir : null;
+    }
+
+    public async getCaTlsPathByOrganization(organization: string): Promise<string | null> {
+        if (!this.db) {
+            throw new Error('Database is probably closed');
+        }
+
+        const result = await this.db.get(
+            'SELECT ca_tls_path FROM enrollment WHERE organization = ?',
+            [organization]
+        );
+
+        return result ? result.ca_tls_path : null;
+    }
+
     public async closeDatabase(): Promise<void> {
         if (this.db) {
             await this.db.close();

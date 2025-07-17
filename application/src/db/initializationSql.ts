@@ -48,6 +48,24 @@ const initializationSql = `
         ('user1', 'wholesaler', 'user', 'wholesaler/users/User1@wholesaler.example.com/msp'),
         ('governmentadmin', 'government', 'admin', 'government/users/Admin@government.example.com/msp'),
         ('user1', 'government', 'user', 'government/users/User1@government.example.com/msp');
+
+    DROP TABLE IF EXISTS enrolment;
+
+    CREATE TABLE enrollment (
+        organization TEXT PRIMARY KEY,
+        ca_name TEXT NOT NULL,
+        ca_client_home TEXT NOT NULL,
+        ca_url TEXT NOT NULL,
+        user_dir TEXT NOT NULL,
+        ca_tls_path TEXT NOT NULL,
+        FOREIGN KEY (organization) REFERENCES msp(organization)
+    );
+
+    INSERT INTO enrollment (organization, ca_name, ca_client_home, ca_url, user_dir, ca_tls_path) VALUES
+        ('vesselowner', 'ca-vesselowner', 'vesselowner', 'localhost:7054', 'vesselowner/users', 'vesselowner/ca-tls-cert.pem'),
+        ('processor', 'ca-processor', 'processor', 'localhost:8054', 'processor/users', 'processor/ca-tls-cert.pem'),
+        ('wholesaler', 'ca-wholesaler', 'wholesaler', 'localhost:11054', 'wholesaler/users', 'wholesaler/ca-tls-cert.pem'),
+        ('government', 'ca-government', 'government', 'localhost:13054', 'government/users', 'government/ca-tls-cert.pem');
 `
 
 export default initializationSql;
