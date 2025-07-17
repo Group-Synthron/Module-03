@@ -3,7 +3,7 @@ import FabricGatewayConnection from '../utils/conntection';
 
 async function getFabricConnection() : Promise<FabricGatewayConnection | null> {
     try {
-        return await FabricGatewayConnection.create();
+        return await FabricGatewayConnection.create(2);
     } catch (error) {
         console.error('Error creating Fabric Gateway Connection:', error);
         return null;

@@ -1,56 +1,25 @@
 import * as grpc from '@grpc/grpc-js';
-import { connect, Contract, Gateway, hash, Identity, Network, Signer, signers } from '@hyperledger/fabric-gateway';
-import * as crypto from 'crypto';
-import * as path from 'path';
-import fs from 'fs/promises';
+import { connect, Contract, Gateway, hash, Network } from '@hyperledger/fabric-gateway';
+
+import User from './user';
+import Organization from './organization';
 
 const channelName = process.env.CHANNEL_NAME;
 const chaincodeName = process.env.CHAINCODE_NAME;
-const mspId = process.env.MSP_ID;
-const keyDirectoryPath = process.env.KEY_DIRECTORY_PATH;
-const certDirectoryPath = process.env.CERT_DIRECTORY_PATH;
-const tlsCertPath = process.env.TLS_CERT_PATH;
-const peerEndpoint = process.env.PEER_ENDPOINT;
-const peeerHostAlias = process.env.PEER_HOST_ALIAS;
 
 // Check if all required environment variables are set.
 // Long line, never mind, just a variable empty check!
-if (!channelName || !chaincodeName || !mspId || !keyDirectoryPath || !certDirectoryPath || !tlsCertPath || !peerEndpoint || !peeerHostAlias) {
+if (!channelName || !chaincodeName) {
     throw new Error('Missing required environment variables');
 }
 
-async function newGrpcConnection(): Promise<grpc.Client>{
-    const tlsRootCert = await fs.readFile(tlsCertPath!);
-    const tlsCredentials = grpc.credentials.createSsl(tlsRootCert);
+async function newGrpcConnection(organization: Organization): Promise<grpc.Client>{
+    const tlsCredentials = grpc.credentials.createSsl(await organization.getTLSRootCert());
     return new grpc.Client(
-        peerEndpoint!,
+        await organization.getPeerEndpoint(),
         tlsCredentials,
-        { 'grpc.ssl_target_name_override' : peeerHostAlias! }
+        { 'grpc.ssl_target_name_override' : await organization.getPeerHostAlias() }
     ); 
-}
-
-async function getFirstDirFileName(dirPath: string): Promise<string> {
-    const files = await fs.readdir(dirPath);
-    const file = files[0];
-    if (!file) {
-        throw new Error(`No files in directory: ${dirPath}`);
-    }
-    return path.join(dirPath, file);
-}
-
-async function newIdentity(): Promise<Identity> {
-    const certPath = await getFirstDirFileName(certDirectoryPath!);
-    const credentials = await fs.readFile(certPath);
-
-    return { mspId: mspId!, credentials };
-}
-
-async function newSigner(): Promise<Signer> {
-    const keyPath = await getFirstDirFileName(keyDirectoryPath!);
-    const privateKeyPem = await fs.readFile(keyPath);
-    const privateKey = crypto.createPrivateKey(privateKeyPem);
-    
-    return signers.newPrivateKeySigner(privateKey);
 }
 
 export default class FabricGatewayConnection {
@@ -68,14 +37,15 @@ export default class FabricGatewayConnection {
         this.contract = {} as Contract;
     }
 
-    public static async create(): Promise<FabricGatewayConnection> {
+    public static async create(userid: number): Promise<FabricGatewayConnection> {
         const instance = new FabricGatewayConnection();
+        const user = await User.create(userid);
 
-        instance.client = await newGrpcConnection();
+        instance.client = await newGrpcConnection(user.getOrganization());
         instance.gateway = connect({
             client: instance.client,
-            identity: await newIdentity(),
-            signer: await newSigner(),
+            identity: await user.getIdentity(),
+            signer: await user.getSigner(),
             hash: hash.sha256,
             evaluateOptions: () => {
                 return { deadline: Date.now() + 5000 }; // 5 seconds
