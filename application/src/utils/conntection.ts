@@ -7,7 +7,6 @@ import fs from 'fs/promises';
 const channelName = process.env.CHANNEL_NAME;
 const chaincodeName = process.env.CHAINCODE_NAME;
 const mspId = process.env.MSP_ID;
-const cryptoPath = process.env.CRYPTO_PATH;
 const keyDirectoryPath = process.env.KEY_DIRECTORY_PATH;
 const certDirectoryPath = process.env.CERT_DIRECTORY_PATH;
 const tlsCertPath = process.env.TLS_CERT_PATH;
@@ -16,7 +15,7 @@ const peeerHostAlias = process.env.PEER_HOST_ALIAS;
 
 // Check if all required environment variables are set.
 // Long line, never mind, just a variable empty check!
-if (!channelName || !chaincodeName || !mspId || !cryptoPath || !keyDirectoryPath || !certDirectoryPath || !tlsCertPath || !peerEndpoint || !peeerHostAlias) {
+if (!channelName || !chaincodeName || !mspId || !keyDirectoryPath || !certDirectoryPath || !tlsCertPath || !peerEndpoint || !peeerHostAlias) {
     throw new Error('Missing required environment variables');
 }
 
