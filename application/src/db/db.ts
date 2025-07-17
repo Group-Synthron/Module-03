@@ -211,5 +211,22 @@ export default class DatabaseManager {
             this.db = null;
         }
     }
+
+    public async saveUser(username: string, organization: string, msp_path: string): Promise<number> {
+        if (!this.db) {
+            throw new Error('Database is probably closed');
+        }
+
+        const result = await this.db.run(
+            'INSERT INTO users (username, organization, role, msp_path) VALUES (?, ?, ?, ?)',
+            [username, organization, 'user', msp_path]
+        );
+
+        if (result.lastID === undefined) {
+            throw new Error('Failed to insert user');
+        }
+
+        return result.lastID;
+    }
 }
 

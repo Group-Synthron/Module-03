@@ -6,6 +6,7 @@ import vesselOwnerRoute from './fabric/vessel-owner';
 import processorRoute from './fabric/processor';
 import wholesalerRoute from './fabric/wholesaler';
 import governmentRoute from './fabric/government';
+import userRoute from './user';
 
 export default class Routes {
     public setRoutes(app: express.Application): void {
@@ -15,5 +16,6 @@ export default class Routes {
         app.use('/fabric/processor', processorRoute);
         app.use('/fabric/wholesaler', wholesalerRoute);
         app.use('/fabric/government', governmentRoute);
+        app.use('/user', userRoute);
     }
 }
