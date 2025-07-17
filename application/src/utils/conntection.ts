@@ -1,8 +1,8 @@
 import * as grpc from '@grpc/grpc-js';
 import { connect, Contract, Gateway, hash, Network } from '@hyperledger/fabric-gateway';
 
-import User from './user';
-import Organization from './organization';
+import User from '../models/user';
+import Organization from '../models/organization';
 
 const channelName = process.env.CHANNEL_NAME;
 const chaincodeName = process.env.CHAINCODE_NAME;

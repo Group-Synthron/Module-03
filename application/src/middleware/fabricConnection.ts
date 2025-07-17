@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import FabricGatewayConnection from '../utils/conntection';
-import User from '../utils/user';
+import User from '../models/user';
 
 async function getFabricConnection(user: User) : Promise<FabricGatewayConnection | null> {
     try {

@@ -1,5 +1,5 @@
 import FabricGatewayConnection from '../../utils/conntection';
-import User from '../../utils/user';
+import User from '../../models/user';
 
 declare global {
     namespace Express {

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import User from '../utils/user';
+import User from '../models/user';
 
 /**
  * Express middleware that checks for X-USER-ID header and attaches User object to request
