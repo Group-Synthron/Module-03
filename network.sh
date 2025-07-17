@@ -55,25 +55,31 @@ setCredentials() {
     FABRIC_PEERS_PATH="./fabric-samples/test-network/organizations/peerOrganizations"
     FABRIC_ORDERER_PATH="./fabric-samples/test-network/organizations/ordererOrganizations"
 
+    # Peers and CA servers use the same TLS certificate, yet duplicating for clarity
+
     infoln "Copying vesselowner credentials"
     cp -r "${FABRIC_PEERS_PATH}/vesselowner.example.com/msp" ./credentials/vesselowner/
     cp -r "${FABRIC_PEERS_PATH}/vesselowner.example.com/users" ./credentials/vesselowner/
     cp -r "${FABRIC_PEERS_PATH}/vesselowner.example.com/peers/peer0.vesselowner.example.com/tls/ca.crt" ./credentials/vesselowner/peer-tls-cert.pem
+    cp -r ./credentials/vesselowner/peer-tls-cert.pem ./credentials/vesselowner/ca-tls-cert.pem
 
     infoln "Copying processor credentials"
     cp -r "${FABRIC_PEERS_PATH}/processor.example.com/msp" ./credentials/processor/
     cp -r "${FABRIC_PEERS_PATH}/processor.example.com/users" ./credentials/processor/
     cp -r "${FABRIC_PEERS_PATH}/processor.example.com/peers/peer0.processor.example.com/tls/ca.crt" ./credentials/processor/peer-tls-cert.pem
+    cp -r ./credentials/processor/peer-tls-cert.pem ./credentials/processor/ca-tls-cert.pem
 
     infoln "Copying wholesaler credentials"
     cp -r "${FABRIC_PEERS_PATH}/wholesaler.example.com/msp" ./credentials/wholesaler/
     cp -r "${FABRIC_PEERS_PATH}/wholesaler.example.com/users" ./credentials/wholesaler/
     cp -r "${FABRIC_PEERS_PATH}/wholesaler.example.com/peers/peer0.wholesaler.example.com/tls/ca.crt" ./credentials/wholesaler/peer-tls-cert.pem
+    cp -r ./credentials/wholesaler/peer-tls-cert.pem ./credentials/wholesaler/ca-tls-cert.pem
 
     infoln "Copying government credentials"
     cp -r "${FABRIC_PEERS_PATH}/government.example.com/msp" ./credentials/government/
     cp -r "${FABRIC_PEERS_PATH}/government.example.com/users" ./credentials/government/
     cp -r "${FABRIC_PEERS_PATH}/government.example.com/peers/peer0.government.example.com/tls/ca.crt" ./credentials/government/peer-tls-cert.pem
+    cp -r ./credentials/government/peer-tls-cert.pem ./credentials/government/ca-tls-cert.pem
 
     PREVIOUS_USER=${SUDO_USER:-$(whoami)}
     if [ $(id -u $PREVIOUS_USER) -ne 0 ]; then
