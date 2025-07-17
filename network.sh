@@ -54,6 +54,8 @@ environmentUp() {
     ./network.sh deployCC -ccn basic -ccp ../../chaincode -ccl typescript
     ./network.sh deployCC -ccn basic -ccp $CHAINCODE -ccl $CCLANG
 
+    chmod +x+r -R ./organizations
+
     popd > /dev/null
 }
 
