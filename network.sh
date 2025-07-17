@@ -67,6 +67,14 @@ environmentDown() {
     popd > /dev/null
 }
 
+# Check if at least one parameter is provided
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <up|down>"
+    echo "  up   - Start the fabric network simulation environment"
+    echo "  down - Stop the fabric network simulation environment"
+    exit 1
+fi
+
 prerequisites
 
 MODE=$1
