@@ -37,9 +37,8 @@ export default class FabricGatewayConnection {
         this.contract = {} as Contract;
     }
 
-    public static async create(userid: number): Promise<FabricGatewayConnection> {
+    public static async create(user: User): Promise<FabricGatewayConnection> {
         const instance = new FabricGatewayConnection();
-        const user = await User.create(userid);
 
         instance.client = await newGrpcConnection(user.getOrganization());
         instance.gateway = connect({
