@@ -22,10 +22,10 @@ const initializationSql = `
     );
 
     INSERT INTO peers (organization, endpoint, host_alias, tls_path) VALUES
-        ('vesselowner', 'localhost:7051', 'peer0.vesselowner.example.com', 'vesselowner/tls/ca.crt'),
-        ('processor', 'localhost:9051', 'peer0.processor.example.com', 'processor/tls/ca.crt'),
-        ('wholesaler', 'localhost:11051', 'peer0.wholesaler.example.com', 'wholesaler/tls/ca.crt'),
-        ('government', 'localhost:13051', 'peer0.government.example.com', 'government/tls/ca.crt');
+        ('vesselowner', 'localhost:7051', 'peer0.vesselowner.example.com', 'vesselowner/peer-tls-cert.pem'),
+        ('processor', 'localhost:9051', 'peer0.processor.example.com', 'processor/peer-tls-cert.pem'),
+        ('wholesaler', 'localhost:11051', 'peer0.wholesaler.example.com', 'wholesaler/peer-tls-cert.pem'),
+        ('government', 'localhost:13051', 'peer0.government.example.com', 'government/peer-tls-cert.pem');
 
     DROP TABLE IF EXISTS users;
 
