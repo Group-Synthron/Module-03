@@ -1,6 +1,6 @@
 import { Context, Contract, Info, Param, Returns, Transaction} from 'fabric-contract-api';
 import { FishBatch } from './FishBatch';
-import { ClientIdentifier, marshal, OwnerIdentifier, setEndorsingOrgs, toJSON, unmarshal } from './util';
+import { ClientIdentifier, marshal, OwnerIdentifier, setEndorsingOrgs, toJsonString, unmarshal } from './util';
 import { ORGANIZATIONS } from './organizations';
 import FishBatchStatus from './FishBatchStatus';
 import { SeizedFishBatch } from './SeizedFishBatch';
@@ -16,27 +16,26 @@ export class FishSupplychain extends Contract {
             throw new Error(`Only ${ORGANIZATIONS.VESSEL_OWNER} can create catched fish bulks`);
         }
 
-        state.Owner = toJSON(ownership);
-        const asset = FishBatch.newInstance(state);
+        state.Owner = toJsonString(ownership);
+        const fishBatch = FishBatch.newInstance(state);
 
-        const exists = await this.AssetExists(ctx, asset.ID);
+        const exists = await this.fishBatchExist(ctx, fishBatch.ID);
         if (exists) {
-            throw new Error(`Asset with ID ${asset.ID} already exists`);
+            throw new Error(`Asset with ID ${fishBatch.ID} already exists`);
         }
 
-        const assetBytes = marshal(asset);
-        await ctx.stub.putState(asset.ID, assetBytes);
+        await ctx.stub.putState(fishBatch.ID, marshal(fishBatch));
 
         // New fish catches should be endorsed by the Vessel Owner
-        await setEndorsingOrgs(ctx, asset.ID, ORGANIZATIONS.VESSEL_OWNER)
+        await setEndorsingOrgs(ctx, fishBatch.ID, ORGANIZATIONS.VESSEL_OWNER)
 
-        ctx.stub.setEvent('CreateAsset', assetBytes);
+        ctx.stub.setEvent('FishBatchCreated', Buffer.from(fishBatch.ID));
     }
 
     @Transaction()
-    @Param('assetID', 'string', 'The ID of the asset to transfer')
+    @Param('fishBatchId', 'string', 'The ID of the fish batch to transfer')
     @Param('processorUser', 'string', 'The processor user who should accept this transfer')
-    async TransferToProcessing(ctx: Context, assetID: string, processorUser: string): Promise<void> {
+    async TransferToProcessing(ctx: Context, fishBatchId: string, processorUser: string): Promise<void> {
         const caller = ClientIdentifier(ctx);
 
         // Verify caller is from VesselOwner organization
@@ -45,48 +44,47 @@ export class FishSupplychain extends Contract {
         }
 
         // Read the existing asset
-        const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
+        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
+        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
 
         // Verify the caller is the current owner of the asset
-        const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
+        const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
         if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
             throw new Error(`Only the current owner can initiate transfer. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
         }
 
-        if (existingAsset.Status !== FishBatchStatus.CAUGHT) {
-            throw new Error(`Asset ${assetID} must be in CAUGHT status to transfer. Current status: ${existingAsset.Status}`);
+        if (fishBatch.Status !== FishBatchStatus.CAUGHT) {
+            throw new Error(`Fish batch ${fishBatchId} must be in CAUGHT status to transfer. Current status: ${fishBatch.Status}`);
         }
 
         // Update the asset status to TRANSFERRING (owner remains VesselOwner until accepted)
-        const updatedAsset = FishBatch.newInstance({
-            ...existingAsset,
+        const updatedFishBatch = FishBatch.newInstance({
+            ...fishBatch,
             Status: FishBatchStatus.TRANSFERRING
         });
 
         // Store the intended processor user in a separate key for the acceptance process
-        const transferInfoKey = `TRANSFER_${assetID}`;
+        const transferInfoKey = `TRANSFER_${fishBatchId}`;
         const transferInfo = {
             intendedProcessor: processorUser,
             initiatedBy: caller.user,
             timestamp: ctx.stub.getTxTimestamp().seconds.toString()
         };
 
-        // Save the updated asset and transfer info to the ledger
-        const updatedAssetBytes = marshal(updatedAsset);
-        await ctx.stub.putState(assetID, updatedAssetBytes);
+        // Save the updated fish batch and transfer info to the ledger
+        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
         await ctx.stub.putState(transferInfoKey, marshal(transferInfo));
 
         // Update endorsing organizations to include Processor for the acceptance
-        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.VESSEL_OWNER, ORGANIZATIONS.PROCESSOR);
+        await setEndorsingOrgs(ctx, fishBatchId, ORGANIZATIONS.VESSEL_OWNER, ORGANIZATIONS.PROCESSOR);
 
         // Emit transfer initiation event
-        ctx.stub.setEvent('TransferToProcessingInitiated', updatedAssetBytes);
+        ctx.stub.setEvent('TransferToProcessingInitiated', Buffer.from(fishBatchId));
     }
 
     @Transaction()
-    @Param('assetID', 'string', 'The ID of the asset to accept')
-    async AcceptToProcessing(ctx: Context, assetID: string): Promise<void> {
+    @Param('fishBatchId', 'string', 'The ID of the fish batch to accept')
+    async AcceptToProcessing(ctx: Context, fishBatchId: string): Promise<void> {
         const caller = ClientIdentifier(ctx);
 
         // Verify caller is from Processor organization
@@ -95,19 +93,19 @@ export class FishSupplychain extends Contract {
         }
 
         // Read the existing asset
-        const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
+        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
+        const existingAsset = FishBatch.newInstance(unmarshal(fishBatchBytes));
 
         // Verify the asset is in TRANSFERRING status
         if (existingAsset.Status !== FishBatchStatus.TRANSFERRING) {
-            throw new Error(`Asset ${assetID} is not in TRANSFERRING status. Current status: ${existingAsset.Status}`);
+            throw new Error(`Asset ${fishBatchId} is not in TRANSFERRING status. Current status: ${existingAsset.Status}`);
         }
 
         // Check if there's a pending transfer for this asset
-        const transferInfoKey = `TRANSFER_${assetID}`;
+        const transferInfoKey = `TRANSFER_${fishBatchId}`;
         const transferInfoBytes = await ctx.stub.getState(transferInfoKey);
         if (transferInfoBytes.length === 0) {
-            throw new Error(`No pending transfer found for asset ${assetID}`);
+            throw new Error(`No pending transfer found for asset ${fishBatchId}`);
         }
 
         const transferInfo = unmarshal(transferInfoBytes) as any;
@@ -124,30 +122,29 @@ export class FishSupplychain extends Contract {
         };
 
         // Update the asset with new owner and status
-        const updatedAsset = FishBatch.newInstance({
+        const updatedFishBatch = FishBatch.newInstance({
             ...existingAsset,
-            Owner: toJSON(newOwnerIdentifier),
+            Owner: toJsonString(newOwnerIdentifier),
             Status: FishBatchStatus.PROCESSING
         });
 
         // Save the updated asset to the ledger
-        const updatedAssetBytes = marshal(updatedAsset);
-        await ctx.stub.putState(assetID, updatedAssetBytes);
+        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
 
         // Clean up the transfer info
         await ctx.stub.deleteState(transferInfoKey);
 
         // Update endorsing organizations to include Processor
-        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.PROCESSOR);
+        await setEndorsingOrgs(ctx, fishBatchId, ORGANIZATIONS.PROCESSOR);
 
         // Emit transfer acceptance event
-        ctx.stub.setEvent('TransferToProcessingAccepted', updatedAssetBytes);
+        ctx.stub.setEvent('TransferToProcessingAccepted', Buffer.from(fishBatchId));
     }
 
     @Transaction()
-    @Param('assetID', 'string', 'The ID of the asset to process')
+    @Param('fishBatchId', 'string', 'The ID of the fish batch to process')
     @Param('newQuantity', 'number', 'The new quantity after processing')
-    async ProcessFishBatch(ctx: Context, assetID: string, newQuantity: number): Promise<void> {
+    async ProcessFishBatch(ctx: Context, fishBatchId: string, newQuantity: number): Promise<void> {
         const caller = ClientIdentifier(ctx);
 
         // Verify caller is from Processor organization
@@ -155,19 +152,19 @@ export class FishSupplychain extends Contract {
             throw new Error(`Only ${ORGANIZATIONS.PROCESSOR} can process fish batches`);
         }
 
-        // Read the existing asset
-        const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
+        // Read the existing fish batch
+        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
+        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
 
-        // Verify the caller is the current owner of the asset
-        const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
+        // Verify the caller is the current owner of the fish batch
+        const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
         if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
-            throw new Error(`Only the current owner can process the asset. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
+            throw new Error(`Only the current owner can process the fish batch. Fish batch is owned by ${currentOwner.user} from ${currentOwner.organization}`);
         }
 
-        // Verify the asset is in PROCESSING status
-        if (existingAsset.Status !== FishBatchStatus.PROCESSING) {
-            throw new Error(`Asset ${assetID} must be in PROCESSING status to be processed. Current status: ${existingAsset.Status}`);
+        // Verify the fish batch is in PROCESSING status
+        if (fishBatch.Status !== FishBatchStatus.PROCESSING) {
+            throw new Error(`Fish batch ${fishBatchId} must be in PROCESSING status to be processed. Current status: ${fishBatch.Status}`);
         }
 
         // Validate new quantity
@@ -175,28 +172,27 @@ export class FishSupplychain extends Contract {
             throw new Error(`New quantity must be greater than 0. Provided: ${newQuantity}`);
         }
 
-        // Update the asset with new quantity and status
-        const updatedAsset = FishBatch.newInstance({
-            ...existingAsset,
+        // Update the fish batch with new quantity and status
+        const updatedFishBatch = FishBatch.newInstance({
+            ...fishBatch,
             Quantity: newQuantity,
             Status: FishBatchStatus.PROCESSED
         });
 
-        // Save the updated asset to the ledger
-        const updatedAssetBytes = marshal(updatedAsset);
-        await ctx.stub.putState(assetID, updatedAssetBytes);
+        // Save the updated fish batch to the ledger
+        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
 
         // Keep endorsing organization as Processor
-        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.PROCESSOR);
+        await setEndorsingOrgs(ctx, fishBatchId, ORGANIZATIONS.PROCESSOR);
 
         // Emit processing completion event
-        ctx.stub.setEvent('FishBatchProcessed', updatedAssetBytes);
+        ctx.stub.setEvent('FishBatchProcessed', Buffer.from(fishBatchId));
     }
 
     @Transaction()
-    @Param('assetID', 'string', 'The ID of the asset to transfer')
+    @Param('fishBatchId', 'string', 'The ID of the fish batch to transfer')
     @Param('wholesalerUser', 'string', 'The wholesaler user who should accept this transfer')
-    async TransferToWholesale(ctx: Context, assetID: string, wholesalerUser: string): Promise<void> {
+    async TransferToWholesale(ctx: Context, fishBatchId: string, wholesalerUser: string): Promise<void> {
         const caller = ClientIdentifier(ctx);
 
         // Verify caller is from Processor organization
@@ -204,49 +200,48 @@ export class FishSupplychain extends Contract {
             throw new Error(`Only ${ORGANIZATIONS.PROCESSOR} can initiate transfer to wholesale`);
         }
 
-        // Read the existing asset
-        const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
+        // Read the existing fish batch
+        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
+        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
 
-        // Verify the caller is the current owner of the asset
-        const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
+        // Verify the caller is the current owner of the fish batch
+        const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
         if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
-            throw new Error(`Only the current owner can initiate transfer. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
+            throw new Error(`Only the current owner can initiate transfer. Fish batch is owned by ${currentOwner.user} from ${currentOwner.organization}`);
         }
 
-        if (existingAsset.Status !== FishBatchStatus.PROCESSED) {
-            throw new Error(`Asset ${assetID} must be in PROCESSED status to transfer to wholesale. Current status: ${existingAsset.Status}`);
+        if (fishBatch.Status !== FishBatchStatus.PROCESSED) {
+            throw new Error(`Fish batch ${fishBatchId} must be in PROCESSED status to transfer to wholesale. Current status: ${fishBatch.Status}`);
         }
 
-        // Update the asset status to TRANSFERRING (owner remains Processor until accepted)
-        const updatedAsset = FishBatch.newInstance({
-            ...existingAsset,
+        // Update the fish batch status to TRANSFERRING (owner remains Processor until accepted)
+        const updatedFishBatch = FishBatch.newInstance({
+            ...fishBatch,
             Status: FishBatchStatus.TRANSFERRING
         });
 
         // Store the intended wholesaler user in a separate key for the acceptance process
-        const transferInfoKey = `TRANSFER_${assetID}`;
+        const transferInfoKey = `TRANSFER_${fishBatchId}`;
         const transferInfo = {
             intendedWholesaler: wholesalerUser,
             initiatedBy: caller.user,
             timestamp: ctx.stub.getTxTimestamp().seconds.toString()
         };
 
-        // Save the updated asset and transfer info to the ledger
-        const updatedAssetBytes = marshal(updatedAsset);
-        await ctx.stub.putState(assetID, updatedAssetBytes);
+        // Save the updated fish batch and transfer info to the ledger
+        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
         await ctx.stub.putState(transferInfoKey, marshal(transferInfo));
 
         // Update endorsing organizations to include Wholesaler for the acceptance
-        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.PROCESSOR, ORGANIZATIONS.WHOLESALER);
+        await setEndorsingOrgs(ctx, fishBatchId, ORGANIZATIONS.PROCESSOR, ORGANIZATIONS.WHOLESALER);
 
         // Emit transfer initiation event
-        ctx.stub.setEvent('TransferToWholesaleInitiated', updatedAssetBytes);
+        ctx.stub.setEvent('TransferToWholesaleInitiated', Buffer.from(fishBatchId));
     }
 
     @Transaction()
-    @Param('assetID', 'string', 'The ID of the asset to accept')
-    async AcceptToWholesale(ctx: Context, assetID: string): Promise<void> {
+    @Param('fishBatchId', 'string', 'The ID of the fish batch to accept')
+    async AcceptToWholesale(ctx: Context, fishBatchId: string): Promise<void> {
         const caller = ClientIdentifier(ctx);
 
         // Verify caller is from Wholesaler organization
@@ -254,20 +249,20 @@ export class FishSupplychain extends Contract {
             throw new Error(`Only ${ORGANIZATIONS.WHOLESALER} can accept transfers`);
         }
 
-        // Read the existing asset
-        const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
+        // Read the existing fish batch
+        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
+        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
 
-        // Verify the asset is in TRANSFERRING status
-        if (existingAsset.Status !== FishBatchStatus.TRANSFERRING) {
-            throw new Error(`Asset ${assetID} is not in TRANSFERRING status. Current status: ${existingAsset.Status}`);
+        // Verify the fish batch is in TRANSFERRING status
+        if (fishBatch.Status !== FishBatchStatus.TRANSFERRING) {
+            throw new Error(`Fish batch ${fishBatchId} is not in TRANSFERRING status. Current status: ${fishBatch.Status}`);
         }
 
-        // Check if there's a pending transfer for this asset
-        const transferInfoKey = `TRANSFER_${assetID}`;
+        // Check if there's a pending transfer for this fish batch
+        const transferInfoKey = `TRANSFER_${fishBatchId}`;
         const transferInfoBytes = await ctx.stub.getState(transferInfoKey);
         if (transferInfoBytes.length === 0) {
-            throw new Error(`No pending transfer found for asset ${assetID}`);
+            throw new Error(`No pending transfer found for fish batch ${fishBatchId}`);
         }
 
         const transferInfo = unmarshal(transferInfoBytes) as any;
@@ -283,30 +278,29 @@ export class FishSupplychain extends Contract {
             user: caller.user
         };
 
-        // Update the asset with new owner and status
-        const updatedAsset = FishBatch.newInstance({
-            ...existingAsset,
-            Owner: toJSON(newOwnerIdentifier),
+        // Update the fish batch with new owner and status
+        const updatedFishBatch = FishBatch.newInstance({
+            ...fishBatch,
+            Owner: toJsonString(newOwnerIdentifier),
             Status: FishBatchStatus.IN_WHOLESALE
         });
 
-        // Save the updated asset to the ledger
-        const updatedAssetBytes = marshal(updatedAsset);
-        await ctx.stub.putState(assetID, updatedAssetBytes);
+        // Save the updated fish batch to the ledger
+        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
 
         // Clean up the transfer info
         await ctx.stub.deleteState(transferInfoKey);
 
         // Update endorsing organizations to include Wholesaler
-        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.WHOLESALER);
+        await setEndorsingOrgs(ctx, fishBatchId, ORGANIZATIONS.WHOLESALER);
 
         // Emit transfer acceptance event
-        ctx.stub.setEvent('TransferToWholesaleAccepted', updatedAssetBytes);
+        ctx.stub.setEvent('TransferToWholesaleAccepted', Buffer.from(fishBatchId));
     }
 
     @Transaction()
-    @Param('assetID', 'string', 'The ID of the asset to sell')
-    async SellFishBatch(ctx: Context, assetID: string): Promise<void> {
+    @Param('fishBatchId', 'string', 'The ID of the fish batch to sell')
+    async SellFishBatch(ctx: Context, fishBatchId: string): Promise<void> {
         const caller = ClientIdentifier(ctx);
 
         // Verify caller is from Wholesaler organization
@@ -314,81 +308,80 @@ export class FishSupplychain extends Contract {
             throw new Error(`Only ${ORGANIZATIONS.WHOLESALER} can sell fish batches`);
         }
 
-        // Read the existing asset
-        const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
+        // Read the existing fish batch
+        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
+        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
 
-        // Verify the caller is the current owner of the asset
-        const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
+        // Verify the caller is the current owner of the fish batch
+        const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
         if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
-            throw new Error(`Only the current owner can sell the asset. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
+            throw new Error(`Only the current owner can sell the fish batch. Fish batch is owned by ${currentOwner.user} from ${currentOwner.organization}`);
         }
 
-        // Verify the asset is in IN_WHOLESALE status
-        if (existingAsset.Status !== FishBatchStatus.IN_WHOLESALE) {
-            throw new Error(`Asset ${assetID} must be in IN_WHOLESALE status to be sold. Current status: ${existingAsset.Status}`);
+        // Verify the fish batch is in IN_WHOLESALE status
+        if (fishBatch.Status !== FishBatchStatus.IN_WHOLESALE) {
+            throw new Error(`Fish batch ${fishBatchId} must be in IN_WHOLESALE status to be sold. Current status: ${fishBatch.Status}`);
         }
 
-        // Update the asset status to SOLD
-        const updatedAsset = FishBatch.newInstance({
-            ...existingAsset,
+        // Update the fish batch status to SOLD
+        const updatedFishBatch = FishBatch.newInstance({
+            ...fishBatch,
             Status: FishBatchStatus.SOLD
         });
 
-        // Save the updated asset to the ledger
-        const updatedAssetBytes = marshal(updatedAsset);
-        await ctx.stub.putState(assetID, updatedAssetBytes);
+        // Save the updated fish batch to the ledger
+        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
 
         // Keep endorsing organization as Wholesaler
-        await setEndorsingOrgs(ctx, assetID, ORGANIZATIONS.WHOLESALER);
+        await setEndorsingOrgs(ctx, fishBatchId, ORGANIZATIONS.WHOLESALER);
 
         // Emit sale completion event
-        ctx.stub.setEvent('FishBatchSold', updatedAssetBytes);
+        ctx.stub.setEvent('FishBatchSold', Buffer.from(fishBatchId));
     }
 
     @Transaction(false)
     @Returns('boolean')
-    async AssetExists(ctx: Context, assetID: string): Promise<boolean> {
-        const assetJson = await ctx.stub.getState(assetID);
-        return assetJson.length > 0;
+    async fishBatchExist(ctx: Context, fishBatchId: string): Promise<boolean> {
+        const fishBatch = await ctx.stub.getState(fishBatchId);
+        return fishBatch.length > 0;
     }
 
     @Transaction(false)
     @Returns('Asset')
-    async ReadAsset(ctx: Context, assetID: string): Promise<FishBatch> {
-        const assetBytes = await this.#readAsset(ctx, assetID);
-        const asset = FishBatch.newInstance(unmarshal(assetBytes));
+    async ReadAsset(ctx: Context, fishBatchId: string): Promise<FishBatch> {
+        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
+        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
 
-        return asset;
+        return fishBatch;
     }
 
-    async #readAsset(ctx: Context, assetID: string): Promise<Uint8Array> {
-        const assetBytes = await ctx.stub.getState(assetID);
-        if (assetBytes.length === 0) {
-            throw new Error(`Asset with ID ${assetID} does not exist`);
+    private async readAsset(ctx: Context, fishBatchId: string): Promise<Uint8Array> {
+        const fishBatchBytes = await ctx.stub.getState(fishBatchId);
+        if (fishBatchBytes.length === 0) {
+            throw new Error(`Fish batch with ID ${fishBatchId} does not exist`);
         }
 
-        return assetBytes;
+        return fishBatchBytes;
     }
 
     @Transaction(false)
     @Returns('string')
     async GetAllAssets(ctx: Context): Promise<string> {
-        // range query with empty string for startKey and endKey does an open-ended query of all assets in the chaincode namespace.
+        // range query with empty string for startKey and endKey does an open-ended query of all fish batches in the chaincode namespace.
         const iterator = await ctx.stub.getStateByRange('', '');
 
-        const assets: FishBatch[] = [];
+        const fishBatches: FishBatch[] = [];
         for (let result = await iterator.next(); !result.done; result = await iterator.next()) {
-            const assetBytes = result.value.value;
+            const fishBatchBytes = result.value.value;
             try {
-                const asset = FishBatch.newInstance(unmarshal(assetBytes));
-                assets.push(asset);
+                const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
+                fishBatches.push(fishBatch);
             } catch (err) {
                 console.log(err);
             }
         }
 
-        return marshal(assets).toString();
+        return marshal(fishBatches).toString();
     }
 
     @Transaction(false)
@@ -397,137 +390,132 @@ export class FishSupplychain extends Contract {
         // range query with empty string for startKey and endKey does an open-ended query of all records in the chaincode namespace.
         const iterator = await ctx.stub.getStateByRange('', '');
 
-        const seizedAssets: SeizedFishBatch[] = [];
+        const seizedFishBatches: SeizedFishBatch[] = [];
         for (let result = await iterator.next(); !result.done; result = await iterator.next()) {
-            const seizedAssetBytes = result.value.value;
+            const seizedFishBatchBytes = result.value.value;
             try {
-                const seizedAsset = SeizedFishBatch.newInstance(unmarshal(seizedAssetBytes) as SeizedFishBatch);
-                seizedAssets.push(seizedAsset);
+                const seizedFishBatch = SeizedFishBatch.newInstance(unmarshal(seizedFishBatchBytes) as SeizedFishBatch);
+                seizedFishBatches.push(seizedFishBatch);
             } catch (err) {
-                // This will fail for non-seized asset objects, which is expected
+                // This will fail for non-seized fish batch objects, which is expected
                 console.log(err);
             }
         }
 
-        return marshal(seizedAssets).toString();
+        return marshal(seizedFishBatches).toString();
     }
 
     @Transaction()
-    @Param('assetID', 'string', 'The ID of the asset to seize')
-    @Param('reason', 'string', 'The reason for seizing the asset')
-    async SeizeAsset(ctx: Context, assetID: string, reason: string): Promise<void> {
+    @Param('fishBatchId', 'string', 'The ID of the fish batch to seize')
+    @Param('reason', 'string', 'The reason for seizing the fish batch')
+    async SeizeAsset(ctx: Context, fishBatchId: string, reason: string): Promise<void> {
         const caller = ClientIdentifier(ctx);
 
         // Verify caller is from the government
         if (caller.organization !== ORGANIZATIONS.GOVERNMENT) {
-            throw new Error(`Only ${ORGANIZATIONS.GOVERNMENT} can sell fish batches`);
+            throw new Error(`Only ${ORGANIZATIONS.GOVERNMENT} can seize fish batches`);
         }
 
-        // Read the existing asset
-        const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
+        // Read the existing fish batch
+        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
+        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
 
-        const updatedAsset = FishBatch.newInstance({
-            ...existingAsset,
+        const updatedFishBatch = FishBatch.newInstance({
+            ...fishBatch,
             Status: FishBatchStatus.SEIZED,
         });
 
-        const seizedAsset = SeizedFishBatch.newInstance({
-            AssetID: assetID,
+        const seizedFishBatch = SeizedFishBatch.newInstance({
+            AssetID: fishBatchId,
             Timestamp: ctx.stub.getTxTimestamp().seconds.toString(),
             Reason: reason,
-            PreviousStatus: existingAsset.Status,
+            PreviousStatus: fishBatch.Status,
             Officer: caller.user,
         })
 
-        // Save the updated asset and seized asset to the ledger
-        const updatedAssetBytes = marshal(updatedAsset);
-        await ctx.stub.putState(assetID, updatedAssetBytes);
-
-        const seizedAssetBytes = marshal(seizedAsset);
-        await ctx.stub.putState(`SEIZED_${assetID}`, seizedAssetBytes);
+        // Save the updated fish batch and seized fish batch to the ledger
+        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
+        await ctx.stub.putState(`SEIZED_${fishBatchId}`, marshal(seizedFishBatch));
         
-        ctx.stub.setEvent('AssetSeized', updatedAssetBytes);
+        ctx.stub.setEvent('AssetSeized', Buffer.from(fishBatchId));
     }
 
     @Transaction()
-    @Param('assetID', 'string', 'The ID of the seized asset to release')
-    async ReleaseSeizedAsset(ctx: Context, assetID: string): Promise<void> {
+    @Param('fishBatchId', 'string', 'The ID of the seized fish batch to release')
+    async ReleaseSeizedAsset(ctx: Context, fishBatchId: string): Promise<void> {
         const caller = ClientIdentifier(ctx);
 
         // Verify caller is from the government
         if (caller.organization !== ORGANIZATIONS.GOVERNMENT) {
-            throw new Error(`Only ${ORGANIZATIONS.GOVERNMENT} can release seized assets`);
+            throw new Error(`Only ${ORGANIZATIONS.GOVERNMENT} can release seized fish batches`);
         }
 
-        // Read the existing asset
-        const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
+        // Read the existing fish batch
+        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
+        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
 
-        // Verify the asset is currently seized
-        if (existingAsset.Status !== FishBatchStatus.SEIZED) {
-            throw new Error(`Asset ${assetID} is not currently seized. Current status: ${existingAsset.Status}`);
+        // Verify the fish batch is currently seized
+        if (fishBatch.Status !== FishBatchStatus.SEIZED) {
+            throw new Error(`Fish batch ${fishBatchId} is not currently seized. Current status: ${fishBatch.Status}`);
         }
 
-        // Read the seized asset record
-        const seizedAssetKey = `SEIZED_${assetID}`;
-        const seizedAssetBytes = await ctx.stub.getState(seizedAssetKey);
-        if (seizedAssetBytes.length === 0) {
-            throw new Error(`No seized asset record found for asset ${assetID}`);
+        // Read the seized fish batch record
+        const seizedFishBatchKey = `SEIZED_${fishBatchId}`;
+        const seizedFishBatchBytes = await ctx.stub.getState(seizedFishBatchKey);
+        if (seizedFishBatchBytes.length === 0) {
+            throw new Error(`No seized fish batch record found for fish batch ${fishBatchId}`);
         }
 
-        const seizedAsset = SeizedFishBatch.newInstance(unmarshal(seizedAssetBytes) as SeizedFishBatch);
+        const seizedFishBatch = SeizedFishBatch.newInstance(unmarshal(seizedFishBatchBytes) as SeizedFishBatch);
 
-        // Restore the asset's previous status
-        const updatedAsset = FishBatch.newInstance({
-            ...existingAsset,
-            Status: seizedAsset.PreviousStatus as FishBatchStatus,
+        // Restore the fish batch's previous status
+        const updatedFishBatch = FishBatch.newInstance({
+            ...fishBatch,
+            Status: seizedFishBatch.PreviousStatus as FishBatchStatus,
         });
 
-        // Save the updated asset to the ledger
-        const updatedAssetBytes = marshal(updatedAsset);
-        await ctx.stub.putState(assetID, updatedAssetBytes);
+        // Save the updated fish batch to the ledger
+        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
 
-        // Remove the seized asset record
-        await ctx.stub.deleteState(seizedAssetKey);
+        // Remove the seized fish batch record
+        await ctx.stub.deleteState(seizedFishBatchKey);
 
-        // Emit asset release event
-        ctx.stub.setEvent('SeizedAssetReleased', updatedAssetBytes);
+        // Emit fish batch release event
+        ctx.stub.setEvent('SeizedAssetReleased', Buffer.from(fishBatchId));
     }
 
     @Transaction()
-    @Param('assetID', 'string', 'The ID of the seized asset to dispose')
-    async DisposeAsset(ctx: Context, assetID: string): Promise<void> {
+    @Param('fishBatchId', 'string', 'The ID of the seized fish batch to dispose')
+    async DisposeAsset(ctx: Context, fishBatchId: string): Promise<void> {
         const caller = ClientIdentifier(ctx);
 
         // Verify caller is from the government
         if (caller.organization !== ORGANIZATIONS.GOVERNMENT) {
-            throw new Error(`Only ${ORGANIZATIONS.GOVERNMENT} can dispose seized assets`);
+            throw new Error(`Only ${ORGANIZATIONS.GOVERNMENT} can dispose seized fish batches`);
         }
 
-        // Read the existing asset
-        const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
+        // Read the existing fish batch
+        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
+        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
 
-        // Verify the asset is currently seized
-        if (existingAsset.Status !== FishBatchStatus.SEIZED) {
-            throw new Error(`Asset ${assetID} is not currently seized. Current status: ${existingAsset.Status}. Only seized assets can be disposed.`);
+        // Verify the fish batch is currently seized
+        if (fishBatch.Status !== FishBatchStatus.SEIZED) {
+            throw new Error(`Fish batch ${fishBatchId} is not currently seized. Current status: ${fishBatch.Status}. Only seized fish batches can be disposed.`);
         }
 
-        // Update the asset status to DISPOSED
-        const updatedAsset = FishBatch.newInstance({
-            ...existingAsset,
+        // Update the fish batch status to DISPOSED
+        const updatedFishBatch = FishBatch.newInstance({
+            ...fishBatch,
             Status: FishBatchStatus.DISPOSED,
         });
 
-        // Save the updated asset to the ledger
-        const updatedAssetBytes = marshal(updatedAsset);
-        await ctx.stub.putState(assetID, updatedAssetBytes);
+        // Save the updated fish batch to the ledger
+        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
 
-        // Keep the seized asset record for audit purposes (don't delete it)
-        // This maintains a trail of why the asset was seized before disposal
+        // Keep the seized fish batch record for audit purposes (don't delete it)
+        // This maintains a trail of why the fish batch was seized before disposal
 
-        // Emit asset disposal event
-        ctx.stub.setEvent('AssetDisposed', updatedAssetBytes);
+        // Emit fish batch disposal event
+        ctx.stub.setEvent('AssetDisposed', Buffer.from(fishBatchId));
     }
 }

@@ -29,10 +29,10 @@ export function unmarshal(bytes: Uint8Array | string): object {
 }
 
 export function marshal(o: object): Buffer {
-    return Buffer.from(toJSON(o));
+    return Buffer.from(toJsonString(o));
 }
 
-export function toJSON(o: object): string {
+export function toJsonString(o: object): string {
     // Insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
     return stringify(sortKeysRecursive(o));
 }
