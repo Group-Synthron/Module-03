@@ -44,8 +44,7 @@ export class FishSupplychain extends Contract {
         }
 
         // Read the existing asset
-        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
-        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
+        const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the caller is the current owner of the asset
         const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
@@ -93,12 +92,11 @@ export class FishSupplychain extends Contract {
         }
 
         // Read the existing asset
-        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
-        const existingAsset = FishBatch.newInstance(unmarshal(fishBatchBytes));
+        const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the asset is in TRANSFERRING status
-        if (existingAsset.Status !== FishBatchStatus.TRANSFERRING) {
-            throw new Error(`Asset ${fishBatchId} is not in TRANSFERRING status. Current status: ${existingAsset.Status}`);
+        if (fishBatch.Status !== FishBatchStatus.TRANSFERRING) {
+            throw new Error(`Asset ${fishBatchId} is not in TRANSFERRING status. Current status: ${fishBatch.Status}`);
         }
 
         // Check if there's a pending transfer for this asset
@@ -123,7 +121,7 @@ export class FishSupplychain extends Contract {
 
         // Update the asset with new owner and status
         const updatedFishBatch = FishBatch.newInstance({
-            ...existingAsset,
+            ...fishBatch,
             Owner: toJsonString(newOwnerIdentifier),
             Status: FishBatchStatus.PROCESSING
         });
@@ -153,8 +151,7 @@ export class FishSupplychain extends Contract {
         }
 
         // Read the existing fish batch
-        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
-        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
+        const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the caller is the current owner of the fish batch
         const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
@@ -201,8 +198,7 @@ export class FishSupplychain extends Contract {
         }
 
         // Read the existing fish batch
-        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
-        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
+        const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the caller is the current owner of the fish batch
         const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
@@ -250,8 +246,7 @@ export class FishSupplychain extends Contract {
         }
 
         // Read the existing fish batch
-        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
-        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
+        const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the fish batch is in TRANSFERRING status
         if (fishBatch.Status !== FishBatchStatus.TRANSFERRING) {
@@ -309,8 +304,7 @@ export class FishSupplychain extends Contract {
         }
 
         // Read the existing fish batch
-        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
-        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
+        const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the caller is the current owner of the fish batch
         const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
@@ -349,19 +343,16 @@ export class FishSupplychain extends Contract {
     @Transaction(false)
     @Returns('Asset')
     async ReadAsset(ctx: Context, fishBatchId: string): Promise<FishBatch> {
-        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
-        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
-
-        return fishBatch;
+        return this.readFishBatch(ctx, fishBatchId);
     }
 
-    private async readAsset(ctx: Context, fishBatchId: string): Promise<Uint8Array> {
+    private async readFishBatch(ctx: Context, fishBatchId: string): Promise<FishBatch> {
         const fishBatchBytes = await ctx.stub.getState(fishBatchId);
         if (fishBatchBytes.length === 0) {
             throw new Error(`Fish batch with ID ${fishBatchId} does not exist`);
         }
 
-        return fishBatchBytes;
+        return FishBatch.newInstance(unmarshal(fishBatchBytes));
     }
 
     @Transaction(false)
@@ -417,8 +408,7 @@ export class FishSupplychain extends Contract {
         }
 
         // Read the existing fish batch
-        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
-        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
+        const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         const updatedFishBatch = FishBatch.newInstance({
             ...fishBatch,
@@ -451,8 +441,7 @@ export class FishSupplychain extends Contract {
         }
 
         // Read the existing fish batch
-        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
-        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
+        const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the fish batch is currently seized
         if (fishBatch.Status !== FishBatchStatus.SEIZED) {
@@ -495,8 +484,7 @@ export class FishSupplychain extends Contract {
         }
 
         // Read the existing fish batch
-        const fishBatchBytes = await this.readAsset(ctx, fishBatchId);
-        const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
+        const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the fish batch is currently seized
         if (fishBatch.Status !== FishBatchStatus.SEIZED) {
