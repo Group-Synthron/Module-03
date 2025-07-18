@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import FabricGatewayConnection from '../../utils/conntection';
 import { decodeTransactionResult } from '../../utils/decode';
 import { ResponseErrorCodes } from '../../utils/ErrorCodes';
+import { getTransactionHistory } from '../../services/fishBatchServices';
 
 const router = express.Router();
 
@@ -54,25 +55,18 @@ router.get('/:catchId/history', async (req: Request, res: Response) => {
     }
 
     const catchId = req.params.catchId;
-
     const fabricConnection = req.fabricConnection as FabricGatewayConnection;
-    const contract = fabricConnection.contract;
 
-    const resultBytes = await contract.evaluateTransaction('GetFishBatchHistory', catchId);
-    fabricConnection.close();
+    try {
+        const history = await getTransactionHistory(catchId, fabricConnection);
+        return res.status(200).json(history);
+    } catch (error : any) {
+        if (error.message === ResponseErrorCodes.BATCH_DOES_NOT_EXIST) {
+            return res.status(404).json({ error: 'Fish batch history not found' });
+        }
 
-    const result = decodeTransactionResult(resultBytes);
-    
-    if (!result.success) {
         return res.status(500).json({ error: 'Failed to retrieve fish batch history' });
     }
-
-    const history = result.data;
-    if (!history.length || history.length === 0) {
-        return res.status(404).json({ error: 'Fish batch history not found' });
-    }
-
-    return res.status(200).json(history);
 });
 
 // Create a new fish batch; Only a vessel owner can do this.
