@@ -1,7 +1,8 @@
-
 // URL endpoints for vessel owner users
 import express, { Request, Response } from 'express';
 import FabricGatewayConnection from '../../utils/conntection';
+import { decodeTransactionResult } from '../../utils/decode';
+import { ResponseErrorCodes } from '../../utils/ErrorCodes';
 
 const router = express.Router();
 
@@ -25,10 +26,22 @@ router.post('/createCatch', async (req: Request, res: Response) => {
         Specie: specie,
     }
 
-    await contract.submitTransaction('CreateAsset', JSON.stringify(asset));
+    const resultBinary = await contract.submitTransaction('CreateAsset', JSON.stringify(asset));
+    const result = decodeTransactionResult(resultBinary);
+    fabricConnection.close();
 
-    fabricConnection.close()
-    return res.status(200).json({ id : asset.ID });
+    if (result.success) {
+        return res.status(200).json({ id : asset.ID });
+    }
+
+    switch (result.errorCode) {
+        case ResponseErrorCodes.BATCH_ALREADY_EXISTS:
+            return res.status(409).json({ error: 'Batch already exists' });
+        case ResponseErrorCodes.ORGANIZATION_MISMATCH:
+            return res.status(403).json({ error: 'Only Vessel Owners can create fish batches' });
+        default:
+            return res.status(500).json({ error: 'Failed to create catch' });
+    }
 });
 
 router.post('/transferToProcess', async (req: Request, res: Response) => {
@@ -42,15 +55,26 @@ router.post('/transferToProcess', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'id and processor values are required' });
     }
 
-    try {
-        await contract.submitTransaction('TransferToProcessing', catchId, processorId);
+    const responseBinary = await contract.submitTransaction('TransferToProcessing', catchId, processorId);
+    fabricConnection.close();
 
-        fabricConnection.close()
-        return res.status(200).send();
-    } catch (error) {
-        fabricConnection.close();
-        console.error('Error transferring catch to processing:', error);
-        res.status(404).json({ error: 'Could not transfer to processing' });
+    const response = decodeTransactionResult(responseBinary);
+
+    if (response.success) {
+        return res.status(204).send();
+    }
+
+    switch (response.errorCode) {
+        case ResponseErrorCodes.ORGANIZATION_MISMATCH:
+            return res.status(403).json({ error: 'Only Vessel Owners can transfer fish batches' });
+        case ResponseErrorCodes.OWNERSHIP_VERIFICATION_FAILED:
+            return res.status(403).json({ error: 'Only owner can transfer fish batches' });
+        case ResponseErrorCodes.STATUS_MISMATCH:
+            return res.status(409).json({ error: 'Batch is not in a transferable state' });
+        case ResponseErrorCodes.BATCH_DOES_NOT_EXIST:
+            return res.status(404).json({ error: 'Batch does not exist' });
+        default:
+            return res.status(500).json({ error: 'Failed to transfer catch to processing' });
     }
 });
 

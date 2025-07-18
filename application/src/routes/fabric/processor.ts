@@ -1,6 +1,8 @@
 // URL endpoints for processor users
 import express, { Request, Response } from 'express';
 import FabricGatewayConnection from '../../utils/conntection';
+import { decodeTransactionResult } from '../../utils/decode';
+import { ResponseErrorCodes } from '../../utils/ErrorCodes';
 
 const router = express.Router();
 
@@ -15,15 +17,28 @@ router.get('/accept/:id', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Catch ID is required' });
     }
 
-    try {
-        await contract.submitTransaction('AcceptToProcessing', catchId);
+    const responseBinary = await contract.submitTransaction('AcceptToProcessing', catchId);
+    fabricConnection.close();
 
-        fabricConnection.close();
-        return res.status(200).send();
-    } catch (error) {
-        fabricConnection.close();
-        console.error('Error accepting catch to processing:', error);
-        return res.status(404).json({ error: 'Could not accept catch for processing' });
+    const response = decodeTransactionResult(responseBinary);
+
+    if (response.success) {
+        return res.status(204).send();
+    }
+
+    switch (response.errorCode) {
+        case ResponseErrorCodes.ORGANIZATION_MISMATCH:
+            return res.status(403).json({ error: 'Organization mismatch' });
+        case ResponseErrorCodes.BATCH_DOES_NOT_EXIST:
+            return res.status(404).json({ error: 'Batch does not exist' });
+        case ResponseErrorCodes.IS_NOT_TRANSFERRING:
+            return res.status(400).json({ error: 'Batch is not in transferring state' });
+        case ResponseErrorCodes.OWNERSHIP_VERIFICATION_FAILED:
+            return res.status(403).json({ error: 'Ownership verification failed' });
+        case ResponseErrorCodes.STATUS_MISMATCH:
+            return res.status(400).json({ error: 'Batch is not in transferring state' });
+        default:
+            return res.status(500).json({ error: 'Unknown error occurred' });
     }
 });
 
@@ -44,15 +59,28 @@ router.post('/process', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Quantity must be a positive number' });
     }
 
-    try {
-        await contract.submitTransaction('ProcessFishBatch', catchId, `${quantity}`);
+    const responseBinary = await contract.submitTransaction('ProcessFishBatch', catchId, `${quantity}`);
+    fabricConnection.close();
 
-        fabricConnection.close();
-        return res.status(200).send();
-    } catch (error) {
-        fabricConnection.close();
-        console.error('Error processing fish batch:', error);
-        return res.status(404).json({ error: 'Could not process fish batch' });
+    const response = decodeTransactionResult(responseBinary);
+
+    if (response.success) {
+        return res.status(200).json(response.data);
+    }
+
+    switch (response.errorCode) {
+        case ResponseErrorCodes.ORGANIZATION_MISMATCH:
+            return res.status(403).json({ error: 'Organization mismatch' });
+        case ResponseErrorCodes.BATCH_DOES_NOT_EXIST:
+            return res.status(404).json({ error: 'Batch does not exist' });
+        case ResponseErrorCodes.OWNERSHIP_VERIFICATION_FAILED:
+            return res.status(403).json({ error: 'You are not the owner of this batch' });
+        case ResponseErrorCodes.STATUS_MISMATCH:
+            return res.status(409).json({ error: 'Fish batch is not in the processing state' });
+        case ResponseErrorCodes.INVALID_QUANTITY:
+            return res.status(400).json({ error: 'Invalid quantity specified' });
+        default:
+            return res.status(500).json({ error: 'Unknown error occurred' });
     }
 });
 
@@ -68,15 +96,26 @@ router.post('/transfer', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'catchId and wholesaler values are required' });
     }
 
-    try {
-        await contract.submitTransaction('TransferToWholesale', catchId, wholesaler);
+    const responseBinary = await contract.submitTransaction('TransferToWholesale', catchId, wholesaler);
+    fabricConnection.close();
 
-        fabricConnection.close();
-        return res.status(200).send();
-    } catch (error) {
-        fabricConnection.close();
-        console.error('Error transferring catch to wholesale:', error);
-        return res.status(404).json({ error: 'Could not transfer to wholesale' });
+    const response = decodeTransactionResult(responseBinary);
+
+    if (response.success) {
+        return res.status(204).send();
+    }
+
+    switch (response.errorCode) {
+        case ResponseErrorCodes.ORGANIZATION_MISMATCH:
+            return res.status(403).json({ error: 'Organization mismatch' });
+        case ResponseErrorCodes.BATCH_DOES_NOT_EXIST:
+            return res.status(404).json({ error: 'Batch does not exist' });
+        case ResponseErrorCodes.OWNERSHIP_VERIFICATION_FAILED:
+            return res.status(403).json({ error: 'Ownership verification failed' });
+        case ResponseErrorCodes.STATUS_MISMATCH:
+            return res.status(400).json({ error: 'Batch is not ready to transfer to wholesale' });
+        default:
+            return res.status(500).json({ error: 'Unknown error occurred' });
     }
 });
 
