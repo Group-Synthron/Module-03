@@ -33,6 +33,62 @@ export class FishSupplychain extends Contract {
         ctx.stub.setEvent('FishBatchCreated', Buffer.from(fishBatch.ID));
     }
 
+    private async initiateTransfer(ctx: Context, batch: FishBatch, newOwner: User): Promise<void> {
+        const batchId = batch.ID;
+
+        const updatedFishBatch = FishBatch.newInstance({
+            ...batch,
+            Status: FishBatchStatus.TRANSFERRING
+        });
+
+        const transferInfoKey = `TRANSFER_${batchId}`;
+        const transferInfo = {
+            intendedOwner: newOwner.toString(),
+            initiatedBy: ClientIdentifier(ctx).toString(),
+            timestamp: ctx.stub.getTxTimestamp().seconds.toString(),
+        };
+
+        await ctx.stub.putState(batchId, marshal(updatedFishBatch));
+        await ctx.stub.putState(transferInfoKey, marshal(transferInfo));
+    }
+
+    private async acceptTransfer(ctx: Context, fishBatch: FishBatch, newStatus: FishBatchStatus): Promise<void> {
+        const batchId = fishBatch.ID;
+
+        if (fishBatch.Status !== FishBatchStatus.TRANSFERRING) {
+            throw new Error(`Batch is not in TRANSFERRING status. Current status: ${fishBatch.Status}`);
+        }
+
+        // Read the transfer info
+        const transferInfoKey = `TRANSFER_${batchId}`;
+        const transferInfoBytes = await ctx.stub.getState(transferInfoKey);
+        if (transferInfoBytes.length === 0) {
+            throw new Error(`No pending transfer found for asset ${batchId}`);
+        }
+
+        const transferInfo = unmarshal(transferInfoBytes) as any;
+
+        // Verify the caller is the intended owner
+        const caller = ClientIdentifier(ctx);
+        if (transferInfo.intendedOwner !== caller.toString()) {
+            throw new Error(`Not the Intended Owner. ${caller.toString()} is not ${transferInfo.intendedOwner}`);
+        }
+
+        const updatedFishBatch = FishBatch.newInstance({
+            ...fishBatch,
+            Owner: transferInfo.intendedOwner,
+            Status: newStatus
+        });
+
+        await ctx.stub.putState(batchId, marshal(updatedFishBatch));
+        await ctx.stub.deleteState(transferInfoKey);
+    }
+
+    private async isOwner(ctx: Context, fishBatch: FishBatch): Promise<boolean> {
+        const caller = ClientIdentifier(ctx);
+        return fishBatch.Owner === caller.toString();
+    }
+
     @Transaction()
     @Param('fishBatchId', 'string', 'The ID of the fish batch to transfer')
     @Param('processorUser', 'string', 'The processor user who should accept this transfer')
@@ -47,33 +103,20 @@ export class FishSupplychain extends Contract {
         // Read the existing asset
         const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
-        // Verify the caller is the current owner of the asset
-        const currentOwner = User.fromString(fishBatch.Owner);
-        if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
-            throw new Error(`Only the current owner can initiate transfer. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
+        if (!this.isOwner(ctx, fishBatch)) {
+            throw new Error(`Only the current owner can initiate transfer.`);
         }
 
         if (fishBatch.Status !== FishBatchStatus.CAUGHT) {
             throw new Error(`Fish batch ${fishBatchId} must be in CAUGHT status to transfer. Current status: ${fishBatch.Status}`);
         }
 
-        // Update the asset status to TRANSFERRING (owner remains VesselOwner until accepted)
-        const updatedFishBatch = FishBatch.newInstance({
-            ...fishBatch,
-            Status: FishBatchStatus.TRANSFERRING
-        });
+        const transferredTo = new User(
+            ORGANIZATIONS.PROCESSOR,
+            processorUser
+        );
 
-        // Store the intended processor user in a separate key for the acceptance process
-        const transferInfoKey = `TRANSFER_${fishBatchId}`;
-        const transferInfo = {
-            intendedProcessor: processorUser,
-            initiatedBy: caller.user,
-            timestamp: ctx.stub.getTxTimestamp().seconds.toString()
-        };
-
-        // Save the updated fish batch and transfer info to the ledger
-        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
-        await ctx.stub.putState(transferInfoKey, marshal(transferInfo));
+        await this.initiateTransfer(ctx, fishBatch, transferredTo);
 
         // Update endorsing organizations to include Processor for the acceptance
         await setEndorsingOrgs(ctx, fishBatchId, ORGANIZATIONS.VESSEL_OWNER, ORGANIZATIONS.PROCESSOR);
@@ -95,43 +138,7 @@ export class FishSupplychain extends Contract {
         // Read the existing asset
         const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
-        // Verify the asset is in TRANSFERRING status
-        if (fishBatch.Status !== FishBatchStatus.TRANSFERRING) {
-            throw new Error(`Asset ${fishBatchId} is not in TRANSFERRING status. Current status: ${fishBatch.Status}`);
-        }
-
-        // Check if there's a pending transfer for this asset
-        const transferInfoKey = `TRANSFER_${fishBatchId}`;
-        const transferInfoBytes = await ctx.stub.getState(transferInfoKey);
-        if (transferInfoBytes.length === 0) {
-            throw new Error(`No pending transfer found for asset ${fishBatchId}`);
-        }
-
-        const transferInfo = unmarshal(transferInfoBytes) as any;
-        
-        // Verify the caller is the intended processor
-        if (transferInfo.intendedProcessor !== caller.user) {
-            throw new Error(`Only ${transferInfo.intendedProcessor} can accept this transfer. You are ${caller.user}`);
-        }
-
-        // Create the new owner identity for Processor organization
-        const newOwner = new User(
-            ORGANIZATIONS.PROCESSOR,
-            caller.user
-        );
-
-        // Update the asset with new owner and status
-        const updatedFishBatch = FishBatch.newInstance({
-            ...fishBatch,
-            Owner: newOwner.toString(),
-            Status: FishBatchStatus.PROCESSING
-        });
-
-        // Save the updated asset to the ledger
-        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
-
-        // Clean up the transfer info
-        await ctx.stub.deleteState(transferInfoKey);
+        this.acceptTransfer(ctx, fishBatch, FishBatchStatus.PROCESSING);
 
         // Update endorsing organizations to include Processor
         await setEndorsingOrgs(ctx, fishBatchId, ORGANIZATIONS.PROCESSOR);
@@ -154,10 +161,8 @@ export class FishSupplychain extends Contract {
         // Read the existing fish batch
         const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
-        // Verify the caller is the current owner of the fish batch
-        const currentOwner = User.fromString(fishBatch.Owner);
-        if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
-            throw new Error(`Only the current owner can process the fish batch. Fish batch is owned by ${currentOwner.user} from ${currentOwner.organization}`);
+        if (!this.isOwner(ctx, fishBatch)) {
+            throw new Error(`Only the current owner can process the fish batch.`);
         }
 
         // Verify the fish batch is in PROCESSING status
@@ -201,33 +206,20 @@ export class FishSupplychain extends Contract {
         // Read the existing fish batch
         const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
-        // Verify the caller is the current owner of the fish batch
-        const currentOwner = User.fromString(fishBatch.Owner);
-        if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
-            throw new Error(`Only the current owner can initiate transfer. Fish batch is owned by ${currentOwner.user} from ${currentOwner.organization}`);
+        if (!this.isOwner(ctx, fishBatch)) {
+            throw new Error(`Only the current owner can initiate transfer.`);
         }
 
         if (fishBatch.Status !== FishBatchStatus.PROCESSED) {
             throw new Error(`Fish batch ${fishBatchId} must be in PROCESSED status to transfer to wholesale. Current status: ${fishBatch.Status}`);
         }
 
-        // Update the fish batch status to TRANSFERRING (owner remains Processor until accepted)
-        const updatedFishBatch = FishBatch.newInstance({
-            ...fishBatch,
-            Status: FishBatchStatus.TRANSFERRING
-        });
+        const transferredTo = new User(
+            ORGANIZATIONS.WHOLESALER,
+            wholesalerUser
+        );
 
-        // Store the intended wholesaler user in a separate key for the acceptance process
-        const transferInfoKey = `TRANSFER_${fishBatchId}`;
-        const transferInfo = {
-            intendedWholesaler: wholesalerUser,
-            initiatedBy: caller.user,
-            timestamp: ctx.stub.getTxTimestamp().seconds.toString()
-        };
-
-        // Save the updated fish batch and transfer info to the ledger
-        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
-        await ctx.stub.putState(transferInfoKey, marshal(transferInfo));
+        await this.initiateTransfer(ctx, fishBatch, transferredTo);
 
         // Update endorsing organizations to include Wholesaler for the acceptance
         await setEndorsingOrgs(ctx, fishBatchId, ORGANIZATIONS.PROCESSOR, ORGANIZATIONS.WHOLESALER);
@@ -249,43 +241,7 @@ export class FishSupplychain extends Contract {
         // Read the existing fish batch
         const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
-        // Verify the fish batch is in TRANSFERRING status
-        if (fishBatch.Status !== FishBatchStatus.TRANSFERRING) {
-            throw new Error(`Fish batch ${fishBatchId} is not in TRANSFERRING status. Current status: ${fishBatch.Status}`);
-        }
-
-        // Check if there's a pending transfer for this fish batch
-        const transferInfoKey = `TRANSFER_${fishBatchId}`;
-        const transferInfoBytes = await ctx.stub.getState(transferInfoKey);
-        if (transferInfoBytes.length === 0) {
-            throw new Error(`No pending transfer found for fish batch ${fishBatchId}`);
-        }
-
-        const transferInfo = unmarshal(transferInfoBytes) as any;
-        
-        // Verify the caller is the intended wholesaler
-        if (transferInfo.intendedWholesaler !== caller.user) {
-            throw new Error(`Only ${transferInfo.intendedWholesaler} can accept this transfer. You are ${caller.user}`);
-        }
-
-        // Create the new owner identity for Wholesaler organization
-        const newOwner = new User(
-            ORGANIZATIONS.WHOLESALER,
-            caller.user
-        );
-
-        // Update the fish batch with new owner and status
-        const updatedFishBatch = FishBatch.newInstance({
-            ...fishBatch,
-            Owner: newOwner.toString(),
-            Status: FishBatchStatus.IN_WHOLESALE
-        });
-
-        // Save the updated fish batch to the ledger
-        await ctx.stub.putState(fishBatchId, marshal(updatedFishBatch));
-
-        // Clean up the transfer info
-        await ctx.stub.deleteState(transferInfoKey);
+        this.acceptTransfer(ctx, fishBatch, FishBatchStatus.IN_WHOLESALE);
 
         // Update endorsing organizations to include Wholesaler
         await setEndorsingOrgs(ctx, fishBatchId, ORGANIZATIONS.WHOLESALER);
@@ -307,10 +263,8 @@ export class FishSupplychain extends Contract {
         // Read the existing fish batch
         const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
-        // Verify the caller is the current owner of the fish batch
-        const currentOwner = User.fromString(fishBatch.Owner);
-        if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
-            throw new Error(`Only the current owner can sell the fish batch. Fish batch is owned by ${currentOwner.user} from ${currentOwner.organization}`);
+        if (!this.isOwner(ctx, fishBatch)) {
+            throw new Error(`Only the current owner can sell the fish batch.`);
         }
 
         // Verify the fish batch is in IN_WHOLESALE status
