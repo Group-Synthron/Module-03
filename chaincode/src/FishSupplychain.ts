@@ -96,7 +96,7 @@ export class FishSupplychain extends Contract {
         const fishBatch = FishBatch.newInstance(state);
 
         const existingBatch = await this.readFishBatch(ctx, fishBatch.ID);
-        if (existingBatch === null) {
+        if (existingBatch !== null) {
             return responseError(ResponseErrorCodes.BATCH_ALREADY_EXISTS);
         }
 
