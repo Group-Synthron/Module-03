@@ -1,5 +1,5 @@
 import { Object as DataType, Property } from 'fabric-contract-api';
-import FishBatchStatus from './FishBatchStatus';
+import FishBatchStatus from '../enums/FishBatchStatus';
 
 @DataType()
 export class FishBatch {

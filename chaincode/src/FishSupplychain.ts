@@ -1,9 +1,9 @@
 import { Context, Contract, Info, Param, Returns, Transaction} from 'fabric-contract-api';
-import { FishBatch } from './FishBatch';
-import { ClientIdentifier, marshal, OwnerIdentifier, setEndorsingOrgs, toJsonString, unmarshal } from './util';
-import { ORGANIZATIONS } from './organizations';
-import FishBatchStatus from './FishBatchStatus';
-import { SeizedFishBatch } from './SeizedFishBatch';
+import { FishBatch } from './models/FishBatch';
+import { ClientIdentifier, marshal, OwnerIdentifier, setEndorsingOrgs, toJsonString, unmarshal } from './util/util';
+import { ORGANIZATIONS } from './enums/Organizations';
+import FishBatchStatus from './enums/FishBatchStatus';
+import { SeizedFishBatch } from './models/SeizedFishBatch';
 
 @Info({title: 'FishSupplychain', description: 'Fish Supply Chain Smart Contract'})
 export class FishSupplychain extends Contract {
