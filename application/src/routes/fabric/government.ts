@@ -120,4 +120,28 @@ router.get('/seized', async (req: Request, res: Response) => {
     }
 });
 
+router.get('/history/:id', async (req: Request, res: Response) => {
+    const fabricConnection = req.fabricConnection as FabricGatewayConnection;
+    const contract = fabricConnection.contract;
+
+    const catchId = req.params.id;
+    
+    if (!catchId) {
+        fabricConnection.close();
+        return res.status(400).json({ error: 'Catch ID is required' });
+    }
+
+    try {
+        const resultBytes = await contract.evaluateTransaction('GetFishBatchHistory', catchId);
+        const result = decodeTransactionResult(resultBytes);
+
+        fabricConnection.close();
+        return res.status(200).json(result);
+    } catch (error) {
+        fabricConnection.close();
+        console.error('Error getting asset history:', error);
+        return res.status(404).json({ error: 'Could not retrieve asset history' });
+    }
+})
+
 export default router;
