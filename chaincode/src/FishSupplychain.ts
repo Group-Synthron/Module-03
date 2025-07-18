@@ -1,9 +1,10 @@
 import { Context, Contract, Info, Param, Returns, Transaction} from 'fabric-contract-api';
 import { FishBatch } from './models/FishBatch';
-import { ClientIdentifier, marshal, OwnerIdentifier, setEndorsingOrgs, toJsonString, unmarshal } from './util/util';
+import { ClientIdentifier, marshal, setEndorsingOrgs, unmarshal } from './util/util';
 import { ORGANIZATIONS } from './enums/Organizations';
 import FishBatchStatus from './enums/FishBatchStatus';
 import { SeizedFishBatch } from './models/SeizedFishBatch';
+import User from './models/User';
 
 @Info({title: 'FishSupplychain', description: 'Fish Supply Chain Smart Contract'})
 export class FishSupplychain extends Contract {
@@ -16,7 +17,7 @@ export class FishSupplychain extends Contract {
             throw new Error(`Only ${ORGANIZATIONS.VESSEL_OWNER} can create catched fish bulks`);
         }
 
-        state.Owner = toJsonString(ownership);
+        state.Owner = ownership.toString();
         const fishBatch = FishBatch.newInstance(state);
 
         const exists = await this.fishBatchExist(ctx, fishBatch.ID);
@@ -47,7 +48,7 @@ export class FishSupplychain extends Contract {
         const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the caller is the current owner of the asset
-        const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
+        const currentOwner = User.fromString(fishBatch.Owner);
         if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
             throw new Error(`Only the current owner can initiate transfer. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
         }
@@ -114,15 +115,15 @@ export class FishSupplychain extends Contract {
         }
 
         // Create the new owner identity for Processor organization
-        const newOwnerIdentifier: OwnerIdentifier = {
-            organization: ORGANIZATIONS.PROCESSOR,
-            user: caller.user
-        };
+        const newOwner = new User(
+            ORGANIZATIONS.PROCESSOR,
+            caller.user
+        );
 
         // Update the asset with new owner and status
         const updatedFishBatch = FishBatch.newInstance({
             ...fishBatch,
-            Owner: toJsonString(newOwnerIdentifier),
+            Owner: newOwner.toString(),
             Status: FishBatchStatus.PROCESSING
         });
 
@@ -154,7 +155,7 @@ export class FishSupplychain extends Contract {
         const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the caller is the current owner of the fish batch
-        const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
+        const currentOwner = User.fromString(fishBatch.Owner);
         if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
             throw new Error(`Only the current owner can process the fish batch. Fish batch is owned by ${currentOwner.user} from ${currentOwner.organization}`);
         }
@@ -201,7 +202,7 @@ export class FishSupplychain extends Contract {
         const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the caller is the current owner of the fish batch
-        const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
+        const currentOwner = User.fromString(fishBatch.Owner);
         if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
             throw new Error(`Only the current owner can initiate transfer. Fish batch is owned by ${currentOwner.user} from ${currentOwner.organization}`);
         }
@@ -268,15 +269,15 @@ export class FishSupplychain extends Contract {
         }
 
         // Create the new owner identity for Wholesaler organization
-        const newOwnerIdentifier: OwnerIdentifier = {
-            organization: ORGANIZATIONS.WHOLESALER,
-            user: caller.user
-        };
+        const newOwner = new User(
+            ORGANIZATIONS.WHOLESALER,
+            caller.user
+        );
 
         // Update the fish batch with new owner and status
         const updatedFishBatch = FishBatch.newInstance({
             ...fishBatch,
-            Owner: toJsonString(newOwnerIdentifier),
+            Owner: newOwner.toString(),
             Status: FishBatchStatus.IN_WHOLESALE
         });
 
@@ -307,7 +308,7 @@ export class FishSupplychain extends Contract {
         const fishBatch = await this.readFishBatch(ctx, fishBatchId);
 
         // Verify the caller is the current owner of the fish batch
-        const currentOwner = JSON.parse(fishBatch.Owner) as OwnerIdentifier;
+        const currentOwner = User.fromString(fishBatch.Owner);
         if (currentOwner.user !== caller.user || currentOwner.organization !== caller.organization) {
             throw new Error(`Only the current owner can sell the fish batch. Fish batch is owned by ${currentOwner.user} from ${currentOwner.organization}`);
         }

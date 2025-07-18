@@ -10,11 +10,7 @@ import { KeyEndorsementPolicy } from 'fabric-shim';
 import { TextDecoder } from 'util';
 import stringify from 'json-stringify-deterministic';
 import sortKeysRecursive from 'sort-keys-recursive';
-
-export interface OwnerIdentifier {
-    organization: string;
-    user: string;
-}
+import User from '../models/User';
 
 const utf8Decoder = new TextDecoder();
 
@@ -47,11 +43,11 @@ export function clientCommonName(ctx: Context): string {
     return matches[1];
 }
 
-export function ClientIdentifier(ctx: Context) : OwnerIdentifier {
-    return {
-        organization: ctx.clientIdentity.getMSPID(),
-        user: clientCommonName(ctx),
-    }
+export function ClientIdentifier(ctx: Context) : User {
+    return new User(
+        ctx.clientIdentity.getMSPID(),
+        clientCommonName(ctx)
+    );
 }
 
 export async function setEndorsingOrgs(ctx: Context, ledgerKey: string, ...orgs: string[]): Promise<void> {
