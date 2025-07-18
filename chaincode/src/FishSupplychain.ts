@@ -95,7 +95,7 @@ export class FishSupplychain extends Contract {
         await ctx.stub.deleteState(transferInfoKey);
     }
 
-    private async isOwner(ctx: Context, fishBatch: FishBatch): Promise<boolean> {
+    private isOwner(ctx: Context, fishBatch: FishBatch): boolean {
         const caller = ClientIdentifier(ctx);
         return fishBatch.Owner === caller.toString();
     }
