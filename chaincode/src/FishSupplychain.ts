@@ -1,13 +1,15 @@
 import { Context, Contract, Info, Param, Returns, Transaction} from 'fabric-contract-api';
-import { Asset, AssetStatus, SeizedAsset } from './asset';
+import { FishBatch } from './FishBatch';
 import { ClientIdentifier, marshal, OwnerIdentifier, setEndorsingOrgs, toJSON, unmarshal } from './util';
 import { ORGANIZATIONS } from './organizations';
+import FishBatchStatus from './FishBatchStatus';
+import { SeizedFishBatch } from './SeizedFishBatch';
 
-@Info({title: 'AssetTransfer', description: 'Asset Transfer Smart Contract'})
-export class AssetTransfer extends Contract {
+@Info({title: 'FishSupplychain', description: 'Fish Supply Chain Smart Contract'})
+export class FishSupplychain extends Contract {
     @Transaction()
     @Param('assetObj', 'Asset', 'The asset to be created or updated')
-    async CreateAsset(ctx: Context, state: Asset): Promise<void> {
+    async CreateAsset(ctx: Context, state: FishBatch): Promise<void> {
         const ownership = ClientIdentifier(ctx);
 
         if (ownership.organization !== ORGANIZATIONS.VESSEL_OWNER) {
@@ -15,7 +17,7 @@ export class AssetTransfer extends Contract {
         }
 
         state.Owner = toJSON(ownership);
-        const asset = Asset.newInstance(state);
+        const asset = FishBatch.newInstance(state);
 
         const exists = await this.AssetExists(ctx, asset.ID);
         if (exists) {
@@ -44,7 +46,7 @@ export class AssetTransfer extends Contract {
 
         // Read the existing asset
         const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
 
         // Verify the caller is the current owner of the asset
         const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
@@ -52,14 +54,14 @@ export class AssetTransfer extends Contract {
             throw new Error(`Only the current owner can initiate transfer. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
         }
 
-        if (existingAsset.Status !== AssetStatus.CAUGHT) {
+        if (existingAsset.Status !== FishBatchStatus.CAUGHT) {
             throw new Error(`Asset ${assetID} must be in CAUGHT status to transfer. Current status: ${existingAsset.Status}`);
         }
 
         // Update the asset status to TRANSFERRING (owner remains VesselOwner until accepted)
-        const updatedAsset = Asset.newInstance({
+        const updatedAsset = FishBatch.newInstance({
             ...existingAsset,
-            Status: AssetStatus.TRANSFERRING
+            Status: FishBatchStatus.TRANSFERRING
         });
 
         // Store the intended processor user in a separate key for the acceptance process
@@ -94,10 +96,10 @@ export class AssetTransfer extends Contract {
 
         // Read the existing asset
         const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
 
         // Verify the asset is in TRANSFERRING status
-        if (existingAsset.Status !== AssetStatus.TRANSFERRING) {
+        if (existingAsset.Status !== FishBatchStatus.TRANSFERRING) {
             throw new Error(`Asset ${assetID} is not in TRANSFERRING status. Current status: ${existingAsset.Status}`);
         }
 
@@ -122,10 +124,10 @@ export class AssetTransfer extends Contract {
         };
 
         // Update the asset with new owner and status
-        const updatedAsset = Asset.newInstance({
+        const updatedAsset = FishBatch.newInstance({
             ...existingAsset,
             Owner: toJSON(newOwnerIdentifier),
-            Status: AssetStatus.PROCESSING
+            Status: FishBatchStatus.PROCESSING
         });
 
         // Save the updated asset to the ledger
@@ -155,7 +157,7 @@ export class AssetTransfer extends Contract {
 
         // Read the existing asset
         const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
 
         // Verify the caller is the current owner of the asset
         const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
@@ -164,7 +166,7 @@ export class AssetTransfer extends Contract {
         }
 
         // Verify the asset is in PROCESSING status
-        if (existingAsset.Status !== AssetStatus.PROCESSING) {
+        if (existingAsset.Status !== FishBatchStatus.PROCESSING) {
             throw new Error(`Asset ${assetID} must be in PROCESSING status to be processed. Current status: ${existingAsset.Status}`);
         }
 
@@ -174,10 +176,10 @@ export class AssetTransfer extends Contract {
         }
 
         // Update the asset with new quantity and status
-        const updatedAsset = Asset.newInstance({
+        const updatedAsset = FishBatch.newInstance({
             ...existingAsset,
             Quantity: newQuantity,
-            Status: AssetStatus.PROCESSED
+            Status: FishBatchStatus.PROCESSED
         });
 
         // Save the updated asset to the ledger
@@ -204,7 +206,7 @@ export class AssetTransfer extends Contract {
 
         // Read the existing asset
         const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
 
         // Verify the caller is the current owner of the asset
         const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
@@ -212,14 +214,14 @@ export class AssetTransfer extends Contract {
             throw new Error(`Only the current owner can initiate transfer. Asset is owned by ${currentOwner.user} from ${currentOwner.organization}`);
         }
 
-        if (existingAsset.Status !== AssetStatus.PROCESSED) {
+        if (existingAsset.Status !== FishBatchStatus.PROCESSED) {
             throw new Error(`Asset ${assetID} must be in PROCESSED status to transfer to wholesale. Current status: ${existingAsset.Status}`);
         }
 
         // Update the asset status to TRANSFERRING (owner remains Processor until accepted)
-        const updatedAsset = Asset.newInstance({
+        const updatedAsset = FishBatch.newInstance({
             ...existingAsset,
-            Status: AssetStatus.TRANSFERRING
+            Status: FishBatchStatus.TRANSFERRING
         });
 
         // Store the intended wholesaler user in a separate key for the acceptance process
@@ -254,10 +256,10 @@ export class AssetTransfer extends Contract {
 
         // Read the existing asset
         const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
 
         // Verify the asset is in TRANSFERRING status
-        if (existingAsset.Status !== AssetStatus.TRANSFERRING) {
+        if (existingAsset.Status !== FishBatchStatus.TRANSFERRING) {
             throw new Error(`Asset ${assetID} is not in TRANSFERRING status. Current status: ${existingAsset.Status}`);
         }
 
@@ -282,10 +284,10 @@ export class AssetTransfer extends Contract {
         };
 
         // Update the asset with new owner and status
-        const updatedAsset = Asset.newInstance({
+        const updatedAsset = FishBatch.newInstance({
             ...existingAsset,
             Owner: toJSON(newOwnerIdentifier),
-            Status: AssetStatus.IN_WHOLESALE
+            Status: FishBatchStatus.IN_WHOLESALE
         });
 
         // Save the updated asset to the ledger
@@ -314,7 +316,7 @@ export class AssetTransfer extends Contract {
 
         // Read the existing asset
         const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
 
         // Verify the caller is the current owner of the asset
         const currentOwner = JSON.parse(existingAsset.Owner) as OwnerIdentifier;
@@ -323,14 +325,14 @@ export class AssetTransfer extends Contract {
         }
 
         // Verify the asset is in IN_WHOLESALE status
-        if (existingAsset.Status !== AssetStatus.IN_WHOLESALE) {
+        if (existingAsset.Status !== FishBatchStatus.IN_WHOLESALE) {
             throw new Error(`Asset ${assetID} must be in IN_WHOLESALE status to be sold. Current status: ${existingAsset.Status}`);
         }
 
         // Update the asset status to SOLD
-        const updatedAsset = Asset.newInstance({
+        const updatedAsset = FishBatch.newInstance({
             ...existingAsset,
-            Status: AssetStatus.SOLD
+            Status: FishBatchStatus.SOLD
         });
 
         // Save the updated asset to the ledger
@@ -353,9 +355,9 @@ export class AssetTransfer extends Contract {
 
     @Transaction(false)
     @Returns('Asset')
-    async ReadAsset(ctx: Context, assetID: string): Promise<Asset> {
+    async ReadAsset(ctx: Context, assetID: string): Promise<FishBatch> {
         const assetBytes = await this.#readAsset(ctx, assetID);
-        const asset = Asset.newInstance(unmarshal(assetBytes));
+        const asset = FishBatch.newInstance(unmarshal(assetBytes));
 
         return asset;
     }
@@ -375,11 +377,11 @@ export class AssetTransfer extends Contract {
         // range query with empty string for startKey and endKey does an open-ended query of all assets in the chaincode namespace.
         const iterator = await ctx.stub.getStateByRange('', '');
 
-        const assets: Asset[] = [];
+        const assets: FishBatch[] = [];
         for (let result = await iterator.next(); !result.done; result = await iterator.next()) {
             const assetBytes = result.value.value;
             try {
-                const asset = Asset.newInstance(unmarshal(assetBytes));
+                const asset = FishBatch.newInstance(unmarshal(assetBytes));
                 assets.push(asset);
             } catch (err) {
                 console.log(err);
@@ -395,11 +397,11 @@ export class AssetTransfer extends Contract {
         // range query with empty string for startKey and endKey does an open-ended query of all records in the chaincode namespace.
         const iterator = await ctx.stub.getStateByRange('', '');
 
-        const seizedAssets: SeizedAsset[] = [];
+        const seizedAssets: SeizedFishBatch[] = [];
         for (let result = await iterator.next(); !result.done; result = await iterator.next()) {
             const seizedAssetBytes = result.value.value;
             try {
-                const seizedAsset = SeizedAsset.newInstance(unmarshal(seizedAssetBytes) as SeizedAsset);
+                const seizedAsset = SeizedFishBatch.newInstance(unmarshal(seizedAssetBytes) as SeizedFishBatch);
                 seizedAssets.push(seizedAsset);
             } catch (err) {
                 // This will fail for non-seized asset objects, which is expected
@@ -423,14 +425,14 @@ export class AssetTransfer extends Contract {
 
         // Read the existing asset
         const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
 
-        const updatedAsset = Asset.newInstance({
+        const updatedAsset = FishBatch.newInstance({
             ...existingAsset,
-            Status: AssetStatus.SEIZED,
+            Status: FishBatchStatus.SEIZED,
         });
 
-        const seizedAsset = SeizedAsset.newInstance({
+        const seizedAsset = SeizedFishBatch.newInstance({
             AssetID: assetID,
             Timestamp: ctx.stub.getTxTimestamp().seconds.toString(),
             Reason: reason,
@@ -460,10 +462,10 @@ export class AssetTransfer extends Contract {
 
         // Read the existing asset
         const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
 
         // Verify the asset is currently seized
-        if (existingAsset.Status !== AssetStatus.SEIZED) {
+        if (existingAsset.Status !== FishBatchStatus.SEIZED) {
             throw new Error(`Asset ${assetID} is not currently seized. Current status: ${existingAsset.Status}`);
         }
 
@@ -474,12 +476,12 @@ export class AssetTransfer extends Contract {
             throw new Error(`No seized asset record found for asset ${assetID}`);
         }
 
-        const seizedAsset = SeizedAsset.newInstance(unmarshal(seizedAssetBytes) as SeizedAsset);
+        const seizedAsset = SeizedFishBatch.newInstance(unmarshal(seizedAssetBytes) as SeizedFishBatch);
 
         // Restore the asset's previous status
-        const updatedAsset = Asset.newInstance({
+        const updatedAsset = FishBatch.newInstance({
             ...existingAsset,
-            Status: seizedAsset.PreviousStatus as AssetStatus,
+            Status: seizedAsset.PreviousStatus as FishBatchStatus,
         });
 
         // Save the updated asset to the ledger
@@ -505,17 +507,17 @@ export class AssetTransfer extends Contract {
 
         // Read the existing asset
         const existingAssetBytes = await this.#readAsset(ctx, assetID);
-        const existingAsset = Asset.newInstance(unmarshal(existingAssetBytes));
+        const existingAsset = FishBatch.newInstance(unmarshal(existingAssetBytes));
 
         // Verify the asset is currently seized
-        if (existingAsset.Status !== AssetStatus.SEIZED) {
+        if (existingAsset.Status !== FishBatchStatus.SEIZED) {
             throw new Error(`Asset ${assetID} is not currently seized. Current status: ${existingAsset.Status}. Only seized assets can be disposed.`);
         }
 
         // Update the asset status to DISPOSED
-        const updatedAsset = Asset.newInstance({
+        const updatedAsset = FishBatch.newInstance({
             ...existingAsset,
-            Status: AssetStatus.DISPOSED,
+            Status: FishBatchStatus.DISPOSED,
         });
 
         // Save the updated asset to the ledger

@@ -1,4 +1,4 @@
-import { AssetTransfer } from "./assetTransfer";
+import { FishSupplychain } from "./FishSupplychain";
 
-export { AssetTransfer } from "./assetTransfer";
-export const contracts: any[] = [AssetTransfer]; // @eslint-disable-line @typescript-eslint/no-explicit-any
+export { FishSupplychain } from "./FishSupplychain";
+export const contracts: any[] = [FishSupplychain]; // @eslint-disable-line @typescript-eslint/no-explicit-any
