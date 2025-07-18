@@ -525,4 +525,30 @@ export class FishSupplychain extends Contract {
 
         return responseSuccess(updatedFishBatch);
     }
+
+    @Transaction(false)
+    @Param('fishBatchId', 'string', 'The ID of the fish batch')
+    async GetFishBatchHistory(ctx: Context, fishBatchId: string): Promise<ResponseObject> {
+        const iterator = await ctx.stub.getHistoryForKey(fishBatchId);
+        const history: any[] = [];
+
+        for (let result = await iterator.next(); !result.done; result = await iterator.next()) {
+            if (result.value && result.value.value) {
+                const fishBatchBytes = result.value.value;
+                try {
+                    const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
+                    history.push({
+                        txId: result.value.txId,
+                        timestamp: result.value.timestamp,
+                        isDelete: result.value.isDelete,
+                        fishBatch
+                    });
+                } catch (err) {
+                    console.log(err);
+                }
+            }
+        }
+
+        return responseSuccess(history);
+    }
 }
