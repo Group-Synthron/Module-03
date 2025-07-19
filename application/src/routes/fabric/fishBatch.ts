@@ -13,7 +13,7 @@ router.get('/', async (req: Request, res: Response) => {
     const contract = fabricConnection.contract;
     const utf8decoder = new TextDecoder('utf-8');
 
-    const resultBytes = await contract.evaluateTransaction('GetAllAssets');
+    const resultBytes = await contract.evaluateTransaction('FishSupplychain:GetAllAssets');
     const resultJsonText = utf8decoder.decode(resultBytes);
     const result = JSON.parse(resultJsonText);
 
@@ -32,7 +32,7 @@ router.get('/:catchId', async (req: Request, res: Response) => {
     const fabricConnection = req.fabricConnection as FabricGatewayConnection;
     const contract = fabricConnection.contract;
 
-    const resultBytes = await contract.evaluateTransaction('ReadAsset', catchId);
+    const resultBytes = await contract.evaluateTransaction('FishSupplychain:ReadAsset', catchId);
     fabricConnection.close()
 
     const result = decodeTransactionResult(resultBytes);
@@ -91,7 +91,7 @@ router.post('/', async (req: Request, res: Response) => {
         Specie: specie,
     }
 
-    const resultBinary = await contract.submitTransaction('CreateAsset', JSON.stringify(asset));
+    const resultBinary = await contract.submitTransaction('FishSupplychain:CreateAsset', JSON.stringify(asset));
     const result = decodeTransactionResult(resultBinary);
     fabricConnection.close();
 
@@ -121,7 +121,7 @@ router.post('/:catchId/transfer/processing', async (req: Request, res: Response)
         return res.status(400).json({ error: 'id and processor values are required' });
     }
 
-    const responseBinary = await contract.submitTransaction('TransferToProcessing', catchId, processorId);
+    const responseBinary = await contract.submitTransaction('FishSupplychain:TransferToProcessing', catchId, processorId);
     fabricConnection.close();
 
     const response = decodeTransactionResult(responseBinary);
@@ -157,7 +157,7 @@ router.post('/:catchId/transfer/wholesale', async (req: Request, res: Response) 
         return res.status(400).json({ error: 'catchId and wholesaler values are required' });
     }
 
-    const responseBinary = await contract.submitTransaction('TransferToWholesale', catchId, wholesaler);
+    const responseBinary = await contract.submitTransaction('FishSupplychain:TransferToWholesale', catchId, wholesaler);
     fabricConnection.close();
 
     const response = decodeTransactionResult(responseBinary);
@@ -192,7 +192,7 @@ router.post('/:catchId/accept/processing', async (req: Request, res: Response) =
         return res.status(400).json({ error: 'Catch ID is required' });
     }
 
-    const responseBinary = await contract.submitTransaction('AcceptToProcessing', catchId);
+    const responseBinary = await contract.submitTransaction('FishSupplychain:AcceptToProcessing', catchId);
     fabricConnection.close();
 
     const response = decodeTransactionResult(responseBinary);
@@ -229,7 +229,7 @@ router.post('/:catchId/accept/wholesale', async (req: Request, res: Response) =>
         return res.status(400).json({ error: 'Catch ID is required' });
     }
 
-    const responseBinary = await contract.submitTransaction('AcceptToWholesale', catchId);
+    const responseBinary = await contract.submitTransaction('FishSupplychain:AcceptToWholesale', catchId);
     fabricConnection.close();
 
     const response = decodeTransactionResult(responseBinary);
@@ -272,7 +272,7 @@ router.patch('/:catchId/process', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Quantity must be a positive number' });
     }
 
-    const responseBinary = await contract.submitTransaction('ProcessFishBatch', catchId, `${quantity}`);
+    const responseBinary = await contract.submitTransaction('FishSupplychain:ProcessFishBatch', catchId, `${quantity}`);
     fabricConnection.close();
 
     const response = decodeTransactionResult(responseBinary);
@@ -309,7 +309,7 @@ router.post('/:catchId/sell', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Batch ID is required' });
     }
 
-    const responseBinary = await contract.submitTransaction('SellFishBatch', batchId);
+    const responseBinary = await contract.submitTransaction('FishSupplychain:SellFishBatch', batchId);
     fabricConnection.close();
 
     const response = decodeTransactionResult(responseBinary);
@@ -345,7 +345,7 @@ router.post('/:catchId/seize', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'catchId and reason are required' });
     }
 
-    const responseBinary = await contract.submitTransaction('SeizeAsset', catchId, reason);
+    const responseBinary = await contract.submitTransaction('FishSupplychain:SeizeAsset', catchId, reason);
     fabricConnection.close();
 
     const response = decodeTransactionResult(responseBinary);
@@ -376,7 +376,7 @@ router.post('/:catchId/release', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Catch ID is required' });
     }
 
-    const responseBinary = await contract.submitTransaction('ReleaseSeizedAsset', catchId);
+    const responseBinary = await contract.submitTransaction('FishSupplychain:ReleaseSeizedAsset', catchId);
     fabricConnection.close();
 
     const response = decodeTransactionResult(responseBinary);
@@ -409,7 +409,7 @@ router.post('/:catchId/dispose', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Catch ID is required' });
     }
 
-    const responseBinary = await contract.submitTransaction('DisposeAsset', catchId);
+    const responseBinary = await contract.submitTransaction('FishSupplychain:DisposeAsset', catchId);
     fabricConnection.close();
 
     const response = decodeTransactionResult(responseBinary);
@@ -437,7 +437,7 @@ router.get('/seized', async (req: Request, res: Response) => {
     const utf8decoder = new TextDecoder('utf-8');
 
     try {
-        const resultBytes = await contract.evaluateTransaction('GetAllSeizedAssets');
+        const resultBytes = await contract.evaluateTransaction('FishSupplychain:GetAllSeizedAssets');
         const resultJsonText = utf8decoder.decode(resultBytes);
         const result = JSON.parse(resultJsonText);
 

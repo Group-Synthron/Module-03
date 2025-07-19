@@ -5,7 +5,7 @@ import { ResponseErrorCodes } from "../utils/ErrorCodes";
 export async function getTransactionHistory(batchId: string, connection: FabricGatewayConnection) {
     const contract = connection.contract;
 
-    const resultBytes = await contract.evaluateTransaction('GetFishBatchHistory', batchId);
+    const resultBytes = await contract.evaluateTransaction('FishSupplychain:GetFishBatchHistory', batchId);
     connection.close();
 
     const result = decodeTransactionResult(resultBytes);
