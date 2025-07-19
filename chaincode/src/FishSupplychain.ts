@@ -366,6 +366,10 @@ export class FishSupplychain extends Contract {
 
         const fishBatches: FishBatch[] = [];
         for (let result = await iterator.next(); !result.done; result = await iterator.next()) {
+            const key = result.value.key;
+            if (key.startsWith('TRANSFER_') || key.startsWith('vessel.') || key.startsWith('SEIZED_')) {
+                continue;
+            }
             const fishBatchBytes = result.value.value;
             try {
                 const fishBatch = FishBatch.newInstance(unmarshal(fishBatchBytes));
@@ -386,10 +390,13 @@ export class FishSupplychain extends Contract {
 
         const seizedFishBatches: SeizedFishBatch[] = [];
         for (let result = await iterator.next(); !result.done; result = await iterator.next()) {
+            const key = result.value.key;
+            if (!key.startsWith('SEIZED_')) {
+                continue;
+            }
             const seizedFishBatchBytes = result.value.value;
             try {
                 const seizedFishBatch = SeizedFishBatch.newInstance(unmarshal(seizedFishBatchBytes) as SeizedFishBatch);
-                if (!seizedFishBatch.Officer) continue; // this is not a seized fish batch object
                 seizedFishBatches.push(seizedFishBatch);
             } catch (err) {
                 // This will fail for non-seized fish batch objects, which is expected
