@@ -9,3 +9,5 @@ node_modules
 chaincode/dist
 
 credentials
+
+__pycache__/
