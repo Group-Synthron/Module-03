@@ -3,6 +3,7 @@ import FabricGatewayConnection from '../../utils/conntection';
 import { decodeTransactionResult } from '../../utils/decode';
 import { ResponseErrorCodes } from '../../utils/ErrorCodes';
 import { getTransactionHistory } from '../../services/fishBatchServices';
+import evaluateAnormalies from '../../services/anormaly';
 
 const router = express.Router();
 
@@ -446,6 +447,27 @@ router.get('/seized', async (req: Request, res: Response) => {
         fabricConnection.close();
         console.error('Error getting seized assets:', error);
         return res.status(404).json({ error: 'Could not retrieve seized assets' });
+    }
+})
+
+router.get('/:catchId/anormalies', async (req: Request, res: Response) => {
+    const fabricConnection = req.fabricConnection as FabricGatewayConnection;
+    const catchId = req.params.catchId;
+
+    if (!catchId) {
+        fabricConnection.close();
+        return res.status(400).json({ error: 'Catch ID is required' });
+    }
+
+    try {
+        const anomalies = await evaluateAnormalies(catchId, fabricConnection);
+        return res.status(200).json(anomalies);
+    } catch (error : any) {
+        if (error.message === ResponseErrorCodes.BATCH_DOES_NOT_EXIST) {
+            return res.status(404).json({ error: 'Fish batch not found' });
+        }
+
+        return res.status(500).json({ error: 'Could not retrieve anomalies' });
     }
 })
 
