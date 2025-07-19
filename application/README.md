@@ -1,21 +1,167 @@
-# Fish Batch API Documentation
+# Synthron Supply Chain API Documentation
 
 ## Overview
-This API provides endpoints for managing fish batches in a blockchain-based supply chain system. The API supports the complete lifecycle of fish batches from catch to sale, including transfers between different types of organizations (Vessel Owners, Processors, Wholesalers, and Government).
+This API provides endpoints for managing a blockchain-based fish supply chain system. The API supports user management, vessel registration, and the complete lifecycle of fish batches from catch to sale, including transfers between different types of organizations (Vessel Owners, Processors, Wholesalers, and Government).
 
-## Base URL
-```
-/fabric/batches
-```
+## Base URLs
+- User Management: `/user`
+- Vessel Management: `/fabric/vessels`
+- Fish Batch Management: `/fabric/batches`
 
 ## Authentication
-All endpoints require proper authentication and organization-specific permissions as indicated in each endpoint description.
+All endpoints require proper authentication using X-USER-ID and X-USER-PASSWORD headers, with organization-specific permissions as indicated in each endpoint description.
 
 ---
 
 ## Endpoints
 
-### 1. Get All Fish Batches
+## User Management
+
+### 1. Create User
+Creates a new user in the system. Only admin users can perform this action.
+
+- **URL:** `POST /user/`
+- **Auth Required:** Yes
+- **Permissions:** Admin only
+
+#### Request Body
+```json
+{
+  "username": "newuser123",
+  "password": "userpassword"
+}
+```
+
+#### Request Parameters
+- `username` (string, required): The username for the new user
+- `password` (string, required): The password for the new user (will be hashed with MD5)
+
+#### Response
+- **Success Response:**
+  - **Code:** 201 Created
+  - **Content:** User creation confirmation
+
+```json
+{
+  "message": "User created successfully",
+  "userId": 9
+}
+```
+
+- **Error Responses:**
+  - **Code:** 400 Bad Request - Username and password are required
+  - **Code:** 403 Forbidden - Admin permissions required
+  - **Code:** 500 Internal Server Error - Failed to enroll user / Failed to save user
+
+---
+
+### 2. Update User Password
+Updates the password for the authenticated user.
+
+- **URL:** `PATCH /user/`
+- **Auth Required:** Yes
+- **Permissions:** Any authenticated user (can only update own password)
+
+#### Request Body
+```json
+{
+  "password": "newpassword123"
+}
+```
+
+#### Request Parameters
+- `password` (string, required): The new password (will be hashed with MD5)
+
+#### Response
+- **Success Response:**
+  - **Code:** 200 OK
+  - **Content:** Password update confirmation
+
+```json
+{
+  "message": "Password updated successfully"
+}
+```
+
+- **Error Responses:**
+  - **Code:** 400 Bad Request - Password is required
+  - **Code:** 403 Forbidden - Not Permitted (user not authenticated)
+  - **Code:** 500 Internal Server Error - Failed to update password
+
+---
+
+## Vessel Management
+
+### 3. Get All Vessels
+Retrieves a list of all vessels in the system.
+
+- **URL:** `GET /fabric/vessels/`
+- **Auth Required:** Yes
+- **Permissions:** Any authenticated user
+
+#### Response
+- **Success Response:**
+  - **Code:** 200 OK
+  - **Content:** Array of vessel objects
+
+```json
+[
+  {
+    "ID": "vessel-1752891019393",
+    "LicenseNumber": "MV 23",
+    "Owner": "VesselOwnerMSP/user1"
+  },
+  {
+    "ID": "vessel-1752891045678",
+    "LicenseNumber": "MV 45",
+    "Owner": "VesselOwnerMSP/user8"
+  }
+]
+```
+
+---
+
+### 4. Create Vessel
+Creates a new vessel registration. 
+
+- **URL:** `POST /fabric/vessels/`
+- **Auth Required:** Yes
+- **Permissions:** Any authenticated user
+
+#### Request Body
+```json
+{
+  "ownerUserName": "captain_smith",
+  "licenseNumber": "FL-2024-001"
+}
+```
+
+#### Request Parameters
+- `ownerUserName` (string, required): The username of the vessel owner
+- `licenseNumber` (string, required): The license number of the vessel
+
+#### Response
+- **Success Response:**
+  - **Code:** 201 Created
+  - **Content:** Created vessel ID
+
+```json
+{
+  "id": "vessel-1752876346971"
+}
+```
+
+- **Error Responses:**
+  - **Code:** 400 Bad Request - ownerUserName and licenseNumber are required
+  - **Code:** 403 Forbidden - Access denied
+  - **Code:** 409 Conflict - Vessel already exists
+  - **Code:** 500 Internal Server Error - Failed to create vessel
+
+---
+
+## Fish Batch Management
+
+### 5. Get All Fish Batches
 Retrieves a list of all fish batches in the system.
 
 - **URL:** `GET /fabric/batches/`
@@ -50,7 +196,7 @@ Retrieves a list of all fish batches in the system.
 
 ---
 
-### 2. Get Fish Batch by ID
+### 6. Get Fish Batch by ID
 Retrieves the latest state of a specific fish batch by its catch ID.
 
 - **URL:** `GET /fabric/batches/:catchId`
@@ -84,7 +230,7 @@ Retrieves the latest state of a specific fish batch by its catch ID.
 
 ---
 
-### 3. Get Fish Batch History
+### 7. Get Fish Batch History
 Retrieves the complete transaction history of a fish batch.
 
 - **URL:** `GET /fabric/batches/:catchId/history`
@@ -143,7 +289,7 @@ Retrieves the complete transaction history of a fish batch.
 
 ---
 
-### 4. Create Fish Batch
+### 8. Create Fish Batch
 Creates a new fish batch. Only Vessel Owners can perform this action.
 
 - **URL:** `POST /fabric/batches/`
@@ -183,7 +329,7 @@ Creates a new fish batch. Only Vessel Owners can perform this action.
 
 ---
 
-### 5. Transfer to Processing
+### 9. Transfer to Processing
 Transfers a fish batch to a processor. Only Vessel Owners can perform this action.
 
 - **URL:** `POST /fabric/batches/:catchId/transfer/processing`
@@ -216,7 +362,7 @@ Transfers a fish batch to a processor. Only Vessel Owners can perform this actio
 
 ---
 
-### 6. Transfer to Wholesale
+### 10. Transfer to Wholesale
 Transfers a fish batch to a wholesaler. Only Processors can perform this action.
 
 - **URL:** `POST /fabric/batches/:catchId/transfer/wholesale`
@@ -248,7 +394,7 @@ Transfers a fish batch to a wholesaler. Only Processors can perform this action.
 
 ---
 
-### 7. Accept to Processing
+### 11. Accept to Processing
 Accepts a fish batch transfer to processing. Only Processors can perform this action.
 
 - **URL:** `POST /fabric/batches/:catchId/accept/processing`
@@ -270,7 +416,7 @@ Accepts a fish batch transfer to processing. Only Processors can perform this ac
 
 ---
 
-### 8. Accept to Wholesale
+### 12. Accept to Wholesale
 Accepts a fish batch transfer to wholesale. Only Wholesalers can perform this action.
 
 - **URL:** `POST /fabric/batches/:catchId/accept/wholesale`
@@ -292,7 +438,7 @@ Accepts a fish batch transfer to wholesale. Only Wholesalers can perform this ac
 
 ---
 
-### 9. Process Fish Batch
+### 13. Process Fish Batch
 Processes a fish batch, updating its processed quantity. Only Processors can perform this action.
 
 - **URL:** `PATCH /fabric/batches/:catchId/process`
@@ -337,7 +483,7 @@ Processes a fish batch, updating its processed quantity. Only Processors can per
 
 ---
 
-### 10. Sell Fish Batch
+### 14. Sell Fish Batch
 Sells a fish batch. Only Wholesalers can perform this action.
 
 - **URL:** `POST /fabric/batches/:catchId/sell`
@@ -373,7 +519,7 @@ Sells a fish batch. Only Wholesalers can perform this action.
 
 ## Government Operations
 
-### 11. Seize Fish Batch
+### 15. Seize Fish Batch
 Seizes a fish batch for regulatory purposes. Only Government can perform this action.
 
 - **URL:** `POST /fabric/batches/:catchId/seize`
@@ -405,7 +551,7 @@ Seizes a fish batch for regulatory purposes. Only Government can perform this ac
 
 ---
 
-### 12. Release Seized Fish Batch
+### 16. Release Seized Fish Batch
 Releases a previously seized fish batch. Only Government can perform this action.
 
 - **URL:** `POST /fabric/batches/:catchId/release`
@@ -427,7 +573,7 @@ Releases a previously seized fish batch. Only Government can perform this action
 
 ---
 
-### 13. Dispose Seized Fish Batch
+### 17. Dispose Seized Fish Batch
 Permanently disposes of a seized fish batch. Only Government can perform this action.
 
 - **URL:** `POST /fabric/batches/:catchId/dispose`
@@ -449,7 +595,7 @@ Permanently disposes of a seized fish batch. Only Government can perform this ac
 
 ---
 
-### 14. Get All Seized Fish Batches
+### 18. Get All Seized Fish Batches
 Retrieves all seized fish batches. Only Government can perform this action.
 
 - **URL:** `GET /fabric/batches/seized`
