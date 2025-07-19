@@ -40,7 +40,7 @@ export default async function authenticate(req: Request, res: Response, next: Ne
 
     try {
         const user = await User.create(userId);
-        if (!user.checkAuthentication(userPassword)) {
+        if (!await user.checkAuthentication(userPassword)) {
             throw new Error('Invalid password');
         }
 

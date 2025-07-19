@@ -88,6 +88,6 @@ export default class User {
 
     public async checkAuthentication(password: string): Promise<boolean> {
         const dbManager = await DatabaseManager.getInstance();
-        return dbManager.authenticateUser(this.uid, password);
+        return await dbManager.authenticateUser(this.uid, password);
     }
 }
