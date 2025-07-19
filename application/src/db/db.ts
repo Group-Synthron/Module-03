@@ -251,5 +251,27 @@ export default class DatabaseManager {
 
         return storedHash === inputHash;
     }
+
+    public async updateUserPassword(uid: number, password: string): Promise<void> {
+        if (!this.db) {
+            throw new Error('Database is probably closed');
+        }
+
+        const result = await this.db.get(
+            'SELECT uid FROM users WHERE uid = ?',
+            [uid]
+        );
+
+        if (!result) {
+            throw new Error('User not found');
+        }
+
+        const password_hash = crypto.createHash('md5').update(password).digest('hex');
+
+        await this.db.run(
+            'UPDATE users SET password = ? WHERE uid = ?',
+            [password_hash, uid]
+        );
+    }
 }
 
