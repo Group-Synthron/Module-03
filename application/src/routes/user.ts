@@ -9,12 +9,13 @@ router.post('/', async (req: Request, res: Response) => {
         return res.status(403).json({ error: 'Forbidden' });
     }
 
+    if (!req.body || !req.body.username || !req.body.password) {
+        return res.status(400).json({ error: 'Username and password are required' });
+    }
+
     const organization = req.user.getOrganization().getName();
     const userName = req.body.username;
-
-    if (!userName) {
-        return res.status(400).json({ error: 'Username is required' });
-    }
+    const password = req.body.password;
 
     let msp_path: string;
     try {
@@ -30,7 +31,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     const dbManager = await DatabaseManager.getInstance();
     try {
-        const userId = await dbManager.saveUser(userName, organization, msp_path);
+        const userId = await dbManager.saveUser(userName, organization, msp_path, password);
         return res.status(201).json({ message: 'User created successfully', userId });
     } catch (error) {
         console.error('Error saving user:', error);

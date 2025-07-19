@@ -35,19 +35,20 @@ const initializationSql = `
         organization TEXT NOT NULL,
         role TEXT CHECK (role IN ('admin', 'user')) NOT NULL,
         msp_path TEXT NOT NULL,
+        password TEXT NOT NULL,
         FOREIGN KEY (organization) REFERENCES msp(organization),
         FOREIGN KEY (organization) REFERENCES peers(organization)
     );
 
-    INSERT INTO users (username, organization, role, msp_path) VALUES
-        ('vesselowneradmin', 'vesselowner', 'admin', 'vesselowner/users/Admin@vesselowner.example.com/msp'),
-        ('user1', 'vesselowner', 'user', 'vesselowner/users/User1@vesselowner.example.com/msp'),
-        ('processoradmin', 'processor', 'admin', 'processor/users/Admin@processor.example.com/msp'),
-        ('user1', 'processor', 'user', 'processor/users/User1@processor.example.com/msp'),
-        ('wholesaleradmin', 'wholesaler', 'admin', 'wholesaler/users/Admin@wholesaler.example.com/msp'),
-        ('user1', 'wholesaler', 'user', 'wholesaler/users/User1@wholesaler.example.com/msp'),
-        ('governmentadmin', 'government', 'admin', 'government/users/Admin@government.example.com/msp'),
-        ('user1', 'government', 'user', 'government/users/User1@government.example.com/msp');
+    INSERT INTO users (username, organization, role, msp_path, password) VALUES
+        ('vesselowneradmin', 'vesselowner', 'admin', 'vesselowner/users/Admin@vesselowner.example.com/msp', '5d41402abc4b2a76b9719d911017c592'),
+        ('user1', 'vesselowner', 'user', 'vesselowner/users/User1@vesselowner.example.com/msp', '5d41402abc4b2a76b9719d911017c592'),
+        ('processoradmin', 'processor', 'admin', 'processor/users/Admin@processor.example.com/msp', '5d41402abc4b2a76b9719d911017c592'),
+        ('user1', 'processor', 'user', 'processor/users/User1@processor.example.com/msp', '5d41402abc4b2a76b9719d911017c592'),
+        ('wholesaleradmin', 'wholesaler', 'admin', 'wholesaler/users/Admin@wholesaler.example.com/msp', '5d41402abc4b2a76b9719d911017c592'),
+        ('user1', 'wholesaler', 'user', 'wholesaler/users/User1@wholesaler.example.com/msp', '5d41402abc4b2a76b9719d911017c592'),
+        ('governmentadmin', 'government', 'admin', 'government/users/Admin@government.example.com/msp', '5d41402abc4b2a76b9719d911017c592'),
+        ('user1', 'government', 'user', 'government/users/User1@government.example.com/msp', '5d41402abc4b2a76b9719d911017c592');
 
     DROP TABLE IF EXISTS enrollment;
 

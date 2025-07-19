@@ -23,8 +23,27 @@ export default async function authenticate(req: Request, res: Response, next: Ne
         return;
     }
 
+    const userPasswordHeader = req.headers['x-user-password'];
+
+    if (!userPasswordHeader) {
+        res.status(401).json({ error: 'NOT AUTHORIZED' });
+        return;
+    }
+
+    // Handle both string and string[] cases for headers
+    const userPassword = Array.isArray(userPasswordHeader) ? userPasswordHeader[0] : userPasswordHeader;
+
+    if (!userPassword.trim()) {
+        res.status(401).json({ error: 'NOT AUTHORIZED' });
+        return;
+    }
+
     try {
         const user = await User.create(userId);
+        if (!user.checkAuthentication(userPassword)) {
+            throw new Error('Invalid password');
+        }
+
         req.user = user;
         next();
     } catch (error) {

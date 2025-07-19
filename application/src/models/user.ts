@@ -86,4 +86,8 @@ export default class User {
         return signers.newPrivateKeySigner(privateKey);
     }
 
+    public async checkAuthentication(password: string): Promise<boolean> {
+        const dbManager = await DatabaseManager.getInstance();
+        return dbManager.authenticateUser(this.uid, password);
+    }
 }

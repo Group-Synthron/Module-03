@@ -1,5 +1,6 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
+import crypto from 'crypto';
 
 import initializationSql from './initializationSql';
 import { existsSync } from 'fs';
@@ -212,14 +213,16 @@ export default class DatabaseManager {
         }
     }
 
-    public async saveUser(username: string, organization: string, msp_path: string): Promise<number> {
+    public async saveUser(username: string, organization: string, msp_path: string, password: string): Promise<number> {
         if (!this.db) {
             throw new Error('Database is probably closed');
         }
 
+        const password_hash = crypto.createHash('md5').update(password).digest('hex');
+
         const result = await this.db.run(
-            'INSERT INTO users (username, organization, role, msp_path) VALUES (?, ?, ?, ?)',
-            [username, organization, 'user', msp_path]
+            'INSERT INTO users (username, organization, role, msp_path, password) VALUES (?, ?, ?, ?, ?)',
+            [username, organization, 'user', msp_path, password_hash]
         );
 
         if (result.lastID === undefined) {
@@ -227,6 +230,26 @@ export default class DatabaseManager {
         }
 
         return result.lastID;
+    }
+
+    public async authenticateUser(uid: number, password: string): Promise<boolean> {
+        if (!this.db) {
+            throw new Error('Database is probably closed');
+        }
+
+        const result = await this.db.get(
+            'SELECT password FROM users WHERE uid = ?',
+            [uid]
+        );
+
+        if (!result) {
+            return false;
+        }
+
+        const storedHash = result.password;
+        const inputHash = crypto.createHash('md5').update(password).digest('hex');
+
+        return storedHash === inputHash;
     }
 }
 
