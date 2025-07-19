@@ -351,7 +351,7 @@ export class FishSupplychain extends Contract {
     @Transaction(false)
     @Returns('Asset')
     async ReadAsset(ctx: Context, fishBatchId: string): Promise<ResponseObject> {
-        const fishBatch = this.readFishBatch(ctx, fishBatchId);
+        const fishBatch = await this.readFishBatch(ctx, fishBatchId);
         if (!fishBatch) {
             return responseError(ResponseErrorCodes.BATCH_DOES_NOT_EXIST);
         }
