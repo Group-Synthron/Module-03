@@ -1,3 +1,4 @@
+#!/bin/bash
 ROOTDIR=$(cd "$(dirname "$0")" && pwd)
 pushd $ROOTDIR > /dev/null
 
@@ -18,7 +19,7 @@ prerequisites() {
 
         if [ $? -ne 0 ]; then
             echo "Failed to initialize fabric-samples. Please try again."
-            rf -rfv ./fabric-samples 2>/dev/null
+            rm -rfv ./fabric-samples 2>/dev/null
             exit 1
         fi
     fi
