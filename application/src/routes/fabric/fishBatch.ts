@@ -21,6 +21,26 @@ router.get('/', async (req: Request, res: Response) => {
     res.status(200).json(result);
 });
 
+//Get all seized fish batches; Only a government can do this.
+router.get('/seized', async (req: Request, res: Response) => {
+    const fabricConnection = req.fabricConnection as FabricGatewayConnection;
+    const contract = fabricConnection.contract;
+    const utf8decoder = new TextDecoder('utf-8');
+
+    try {
+        const resultBytes = await contract.evaluateTransaction('FishSupplychain:GetAllSeizedAssets');
+        const resultJsonText = utf8decoder.decode(resultBytes);
+        const result = JSON.parse(resultJsonText);
+
+        fabricConnection.close();
+        return res.status(200).json(result);
+    } catch (error) {
+        fabricConnection.close();
+        console.error('Error getting seized assets:', error);
+        return res.status(404).json({ error: 'Could not retrieve seized assets' });
+    }
+})
+
 // Get latest state of a fish batch by catch ID
 router.get('/:catchId', async (req: Request, res: Response) => {
     if (!req.params.catchId) {
@@ -430,25 +450,7 @@ router.post('/:catchId/dispose', async (req: Request, res: Response) => {
     }
 })
 
-// Get all seized fish batches; Only a government can do this.
-router.get('/seized', async (req: Request, res: Response) => {
-    const fabricConnection = req.fabricConnection as FabricGatewayConnection;
-    const contract = fabricConnection.contract;
-    const utf8decoder = new TextDecoder('utf-8');
 
-    try {
-        const resultBytes = await contract.evaluateTransaction('FishSupplychain:GetAllSeizedAssets');
-        const resultJsonText = utf8decoder.decode(resultBytes);
-        const result = JSON.parse(resultJsonText);
-
-        fabricConnection.close();
-        return res.status(200).json(result);
-    } catch (error) {
-        fabricConnection.close();
-        console.error('Error getting seized assets:', error);
-        return res.status(404).json({ error: 'Could not retrieve seized assets' });
-    }
-})
 
 router.get('/:catchId/anormalies', async (req: Request, res: Response) => {
     const fabricConnection = req.fabricConnection as FabricGatewayConnection;
