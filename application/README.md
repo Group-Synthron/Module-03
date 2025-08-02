@@ -1,4 +1,4 @@
-# Synthron Supply Chain API Documentation
+# Synthron API Documentation
 
 ## Overview
 This API provides endpoints for managing a blockchain-based fish supply chain system. The API supports user management, vessel registration, and the complete lifecycle of fish batches from catch to sale, including transfers between different types of organizations (Vessel Owners, Processors, Wholesalers, and Government).
